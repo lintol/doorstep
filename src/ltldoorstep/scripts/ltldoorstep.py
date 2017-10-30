@@ -1,6 +1,6 @@
 import click
 from ltldoorstep import printer
-from ltldoorstep import process
+from ltldoorstep.engines import engines
 
 @click.group()
 @click.option('--debug/--no-debug', default=False)
@@ -24,15 +24,16 @@ def status(ctx):
         click.echo(_('Debug is off'))
 
 @cli.command()
-@click.argument('filename', 'CSV file to process')
+@click.argument('filename', 'data file to process')
+@click.argument('workflow', 'Python workflow module')
+@click.option('--engine', type=click.Choice(engines.keys()), required=True)
 @click.pass_context
-def csv(ctx, filename=None):
+def process(ctx, filename, workflow, engine):
     printer = ctx.obj['printer']
 
-    click.echo('PROCESS CSV')
-
-    processor = process.CsvProcessor()
-    result = processor.run(filename)
-    processor.print_report(printer, result)
+    print(engine)
+    engine = engines[engine]()
+    result = engine.run(filename, workflow)
+    printer.print_report(result)
 
     print(printer.get_output())

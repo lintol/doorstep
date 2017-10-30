@@ -1,0 +1,36 @@
+{
+  "pipeline": {
+    "name": "doorstep"
+  },
+  "transform": {
+    "cmd": [
+      "sh"
+    ],
+    "stdin": [
+      "for processor in /pfs/processors/*; do",
+      "for data in /pfs/data/*; do",
+      "  output_file=/pfs/out/doorstep.out",
+      "  echo ::::${data}::${processor}:::: >> $output_file",
+      "  ltldoorstep process $data $processor --engine=dask.threaded >> $output_file",
+      "done",
+      "done"
+    ],
+    "image": "lintol/doorstep"
+  },
+  "input": {
+    "cross": [
+      {
+        "atom": {
+          "repo": "processors",
+          "glob": "/*"
+        }
+      },
+      {
+        "atom": {
+          "repo": "data",
+          "glob": "/*"
+        }
+      }
+    ]
+  }
+}
