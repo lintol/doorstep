@@ -1,4 +1,5 @@
 import click
+import gettext
 from ltldoorstep import printer
 from ltldoorstep.engines import engines
 
@@ -11,6 +12,7 @@ def cli(ctx, debug):
         'DEBUG': debug,
         'printer': prnt
     }
+    gettext.install('ltldoorstep')
 
 @cli.command()
 @click.pass_context
@@ -31,9 +33,27 @@ def status(ctx):
 def process(ctx, filename, workflow, engine):
     printer = ctx.obj['printer']
 
-    print(engine)
+    click.echo(_('Engine: %s' % engine))
     engine = engines[engine]()
     result = engine.run(filename, workflow)
     printer.print_report(result)
 
     print(printer.get_output())
+
+@cli.command()
+@click.option('--engine', type=click.Choice(engines.keys()), required=True)
+@click.pass_context
+def serve(ctx, engine):
+    from ltldoorstep.server import get_app
+    printer = ctx.obj['printer']
+
+    click.echo(_('Engine: %s' % engine))
+
+    app = get_app()
+
+    engine = engines[engine]()
+
+    with engine.make_session() as session:
+        app.session = session
+        app.engine = engine
+        app.run()

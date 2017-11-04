@@ -20,9 +20,13 @@ class TermColorPrinter:
             logging.ERROR: []
         }
 
+        general_output = []
         results = {}
         for result_set in result_sets:
-            results.update(result_set)
+            try:
+                results.update(result_set)
+            except ValueError:
+                self.add_section(result_set)
 
         for comment, detail in results.items():
             levels[detail[1]].append([

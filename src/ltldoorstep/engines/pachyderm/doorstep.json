@@ -7,8 +7,8 @@
       "sh"
     ],
     "stdin": [
-      "for processor in /pfs/processors/*; do",
-      "for data in /pfs/data/*; do",
+      "for processor in /pfs/doorstep-*-processors/*; do",
+      "for data in /pfs/doorstep-*-data/*; do",
       "  output_file=/pfs/out/doorstep.out",
       "  echo ::::${data}::${processor}:::: >> $output_file",
       "  ltldoorstep process $data $processor --engine=dask.threaded >> $output_file",
@@ -32,5 +32,18 @@
         }
       }
     ]
-  }
+  },
+  "parallelism_spec": null,
+  "inputs": null,
+  "egress": null,
+  "update": null,
+  "output_branch": null,
+  "scale_down_threshold": null,
+  "resource_spec": null,
+  "description": null,
+  "incremental": null,
+  "cache_size": null,
+  "enable_stats": null,
+  "reprocess": null,
+  "batch": null
 }
