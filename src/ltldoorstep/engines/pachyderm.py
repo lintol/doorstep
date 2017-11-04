@@ -23,6 +23,13 @@ class PachydermCommit:
             content
         )
 
+    def put_file_url(self, filename, url):
+        self._clients['pfs'].put_file_url(
+            self.get_full_name(),
+            filename,
+            url
+        )
+
     def get_name(self):
         return self._name
 
@@ -93,7 +100,7 @@ def make_pipeline(clients, definition, session):
         clients['pps'].delete_pipeline(pipeline.get_name(), delete_jobs=True, delete_repo=True)
 
 class PachydermProcessor:
-    _retry_count = 10
+    _retry_count = 120
     _retry_delay = 1.0
     _retry_processing_count = 50
 
@@ -107,16 +114,22 @@ class PachydermProcessor:
         filename = '/%s.py' % module_name
         self._add_file('processors', filename, content, session)
 
-    def add_data(self, filename, content, session):
+    def add_data(self, filename, content, session, bucket=None):
         filename = '/%s' % filename
-        self._add_file('data', filename, content, session)
+        self._add_file('data', filename, content, session, bucket)
 
-    def _add_file(self, category, filename, content, session):
+    def _add_file(self, category, filename, content, session, bucket=None):
         with session[category].make_commit('master') as commit:
-            commit.put_file_bytes(
-                filename,
-                content
-            )
+            if bucket:
+                commit.put_file_url(
+                    filename,
+                    's3://%s/%s' % (bucket, content)
+                )
+            else:
+                commit.put_file_bytes(
+                    filename,
+                    content
+                )
 
     @contextmanager
     def make_session(self):
@@ -146,13 +159,18 @@ class PachydermProcessor:
                 session['pipeline'] = pipeline
                 yield session
 
-    def run(self, filename, workflow_module):
+    def run(self, filename, workflow_module, bucket=None):
         with self.make_session() as session:
             with open(workflow_module, 'r') as f:
                 self.add_processor('processor', f.read().encode('utf-8'), session)
 
-            with open(filename, 'r') as f:
-                self.add_data('data.csv', f.read().encode('utf-8'), session)
+            if bucket:
+                content = filename
+            else:
+                with open(filename, 'r') as f:
+                    content = f.read().encode('utf-8')
+
+            self.add_data('data.csv', content, session, bucket)
 
             results = self.execute_pipeline(session)
 

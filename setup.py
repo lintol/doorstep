@@ -44,7 +44,8 @@ setup(
         'unicodeblock',
         'goodtables',
         'pypachy',
-        'pandas'
+        'pandas',
+        'boto3'
     ],
     include_package_data=True,
     tests_require=['pytest'],

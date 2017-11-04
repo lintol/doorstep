@@ -5,12 +5,14 @@ from ltldoorstep.engines import engines
 
 @click.group()
 @click.option('--debug/--no-debug', default=False)
+@click.option('-b', '--bucket', default=None)
 @click.pass_context
-def cli(ctx, debug):
+def cli(ctx, debug, bucket):
     prnt = printer.TermColorPrinter(debug)
     ctx.obj = {
         'DEBUG': debug,
-        'printer': prnt
+        'printer': prnt,
+        'bucket': bucket
     }
     gettext.install('ltldoorstep')
 
@@ -32,10 +34,11 @@ def status(ctx):
 @click.pass_context
 def process(ctx, filename, workflow, engine):
     printer = ctx.obj['printer']
+    bucket = ctx.obj['bucket']
 
     click.echo(_('Engine: %s' % engine))
     engine = engines[engine]()
-    result = engine.run(filename, workflow)
+    result = engine.run(filename, workflow, bucket=bucket)
     printer.print_report(result)
 
     print(printer.get_output())

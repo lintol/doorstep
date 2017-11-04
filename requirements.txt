@@ -6,5 +6,6 @@ pandas
 tabulate
 pypachy
 Flask
+boto3
 flask_restful
 goodtables
