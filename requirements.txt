@@ -5,3 +5,6 @@ distributed
 pandas
 tabulate
 pypachy
+flask
+flask_restful
+goodtables

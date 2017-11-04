@@ -39,7 +39,10 @@ setup(
         'dask',
         'distributed',
         'tabulate',
+        'flask',
+        'flask_restful',
         'unicodeblock',
+        'goodtables',
         'pypachy',
         'pandas'
     ],
