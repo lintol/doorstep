@@ -39,7 +39,7 @@ setup(
         'dask',
         'distributed',
         'tabulate',
-        'flask',
+        'Flask',
         'flask_restful',
         'unicodeblock',
         'goodtables',
