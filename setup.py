@@ -12,9 +12,18 @@ try:
 except ImportError as e:
     pass
 
+try:
+    from sphinx.setup_command import BuildDoc
+    cmdclass['build_sphinx'] = BuildDoc
+except ImportError as e:
+    pass
+
+name = 'ltldoorstep'
+version = '0.1'
+release = '0.1.1'
 setup(
     name='ltldoorstep',
-    version='0.0.1',
+    version=release,
     description='Doorstep: Project Lintol validation engine',
     url='https://github.com/lintol/doorstep',
     author='Project Lintol team (on behalf of)',
@@ -31,7 +40,8 @@ setup(
     keywords='validation lintol data',
     setup_requires=['pytest-runner'],
     extras_require={
-        'babel-commands': ['Babel']
+        'babel-commands': ['Babel'],
+        'sphinx-commands': ['sphinx']
     },
     install_requires=[
         'Click',
@@ -53,5 +63,12 @@ setup(
         [console_scripts]
         ltldoorstep=ltldoorstep.scripts.ltldoorstep:cli
     ''',
-    cmdclass=cmdclass
+    cmdclass=cmdclass,
+    command_options={
+        'build_sphinx': {
+            'project': ('setup.py', name),
+            'version': ('setup.py', version),
+            'release': ('setup.py', release)
+        }
+    }
 )
