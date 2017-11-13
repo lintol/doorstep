@@ -1,8 +1,9 @@
-from . import dask
+from . import dask_threaded
+from . import dask_distributed
 from . import pachyderm
 
 engines = {
-    'dask.threaded': dask.DaskThreadedProcessor,
-    'dask.distributed': dask.DaskDistributedProcessor,
-    'pachyderm': pachyderm.PachydermProcessor,
+    'dask.threaded': dask_threaded.DaskThreadedEngine,
+    'dask.distributed': dask_distributed.DaskDistributedEngine,
+    'pachyderm': pachyderm.PachydermEngine,
 }

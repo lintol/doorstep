@@ -58,7 +58,10 @@ setup(
         'boto3'
     ],
     include_package_data=True,
-    tests_require=['pytest'],
+    tests_require=[
+        'pytest',
+        'mock'
+    ],
     entry_points='''
         [console_scripts]
         ltldoorstep=ltldoorstep.scripts.ltldoorstep:cli
