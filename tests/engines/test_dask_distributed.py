@@ -3,6 +3,7 @@
 from unittest.mock import Mock, patch, mock_open
 from distributed import utils
 from distributed import utils_test
+import asyncio
 import pytest
 from ltldoorstep.engines.dask_distributed import DaskDistributedEngine
 from contextlib import contextmanager
@@ -31,12 +32,14 @@ def get_workflow(filename):
     '''
 
     mopen = mock_open(read_data=test_module)
+    loop = asyncio.get_event_loop()
 
     with patch('distributed.client.open', mopen) as _:
+        # Note that the event loop is handled within utils_test
         @utils_test.gen_cluster(client=True)
-        def _exec(c, s, a, b):
+        async def _exec(c, s, a, b):
             engine.client = c
-            return engine.run(filename, module)
+            return await engine.run(filename, module)
 
         result = _exec()
 

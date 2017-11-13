@@ -9,7 +9,7 @@ class DaskThreadedEngine:
     """Allow execution of a dask workflow within this process."""
 
     @staticmethod
-    def run(filename, workflow_module, bucket=None):
+    async def run(filename, workflow_module, bucket=None):
         """Start the multi-threaded execution process."""
 
         mod = SourceFileLoader('custom_processor', workflow_module)

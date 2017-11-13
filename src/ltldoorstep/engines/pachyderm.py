@@ -106,7 +106,7 @@ class PachydermEngine:
                 session['pipeline'] = pipeline
                 yield session
 
-    def run(self, filename, workflow_module, bucket=None):
+    async def run(self, filename, workflow_module, bucket=None):
         """Execute the pipeline on a Pachyderm cluster."""
 
         with self.make_session() as session:

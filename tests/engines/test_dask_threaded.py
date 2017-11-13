@@ -2,6 +2,7 @@
 
 from unittest.mock import Mock, patch, mock_open
 import pytest
+import asyncio
 from ltldoorstep.engines.dask_threaded import DaskThreadedEngine
 
 @pytest.fixture
@@ -29,9 +30,10 @@ def test_can_run_workflow(engine):
     module.get_workflow.return_value = {
         'output': (processor, 'foo')
     }
+    loop = asyncio.get_event_loop()
 
     with patch('ltldoorstep.engines.dask_threaded.open', mopen) as _, \
             patch(source_file_loader_path, source_file_loader):
-        engine.run(filename, module)
+        loop.run_until_complete(engine.run(filename, module))
 
     processor.assert_called_with('foo')

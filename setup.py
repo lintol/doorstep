@@ -60,6 +60,7 @@ setup(
     include_package_data=True,
     tests_require=[
         'pytest',
+        'pytest-asyncio',
         'mock'
     ],
     entry_points='''

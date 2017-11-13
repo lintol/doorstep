@@ -1,6 +1,7 @@
 """Check Pachyderm interaction is correct."""
 
 from unittest.mock import Mock, patch, mock_open
+import asyncio
 import pytest
 import pypachy
 from ltldoorstep.engines.pachyderm import PachydermEngine
@@ -54,9 +55,11 @@ def test_can_run_local(engine):
 
     mopen = mock_open(read_data='{}')
     time = Mock()
+    loop = asyncio.get_event_loop()
+
     with patch('ltldoorstep.engines.pachyderm.open', mopen) as _, \
             patch('ltldoorstep.engines.pachyderm.time', time):
-        engine.run(filename, module)
+        loop.run_until_complete(engine.run(filename, module))
 
     assert 'pipeline' in definition
     assert 'name' in definition['pipeline']
