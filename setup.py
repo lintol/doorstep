@@ -55,7 +55,8 @@ setup(
         'goodtables',
         'pypachy',
         'pandas',
-        'boto3'
+        'boto3',
+        'autobahn'
     ],
     include_package_data=True,
     tests_require=[
@@ -66,6 +67,7 @@ setup(
     entry_points='''
         [console_scripts]
         ltldoorstep=ltldoorstep.scripts.ltldoorstep:cli
+        ltlwampclient=ltldoorstep.scripts.ltlwampclient:cli
     ''',
     cmdclass=cmdclass,
     command_options={

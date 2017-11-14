@@ -38,11 +38,14 @@ class Data(Resource):
 
 class Report(Resource):
     def get(self):
-        return app.engine.execute_pipeline(app.session)
+        return app.engine.monitor_pipeline(app.session)
 
 api.add_resource(Processor, '/processor')
 api.add_resource(Data, '/data')
 api.add_resource(Report, '/report')
 
-def get_app():
-    return app
+def run_flask(engine):
+    with engine.make_session() as session:
+        app.session = session
+        app.engine = engine
+        app.run()

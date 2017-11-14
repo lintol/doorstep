@@ -45,18 +45,21 @@ def process(ctx, filename, workflow, engine):
 
 @cli.command()
 @click.option('--engine', type=click.Choice(engines.keys()), required=True)
+@click.option('--protocol', type=click.Choice(['http', 'wamp']), required=True)
 @click.pass_context
-def serve(ctx, engine):
-    from ltldoorstep.server import get_app
+def serve(ctx, engine, protocol):
     printer = ctx.obj['printer']
 
     click.echo(_('Engine: %s' % engine))
 
-    app = get_app()
-
     engine = engines[engine]()
 
-    with engine.make_session() as session:
-        app.session = session
-        app.engine = engine
-        app.run()
+    if protocol == 'http':
+        from ltldoorstep.flask_server import launch_flask
+        launch_flask(engine)
+    elif protocol == 'wamp':
+        from ltldoorstep.wamp_server import launch_wamp
+        launch_wamp(engine)
+    else:
+        raise RuntimeError("Unknown protocol")
+
