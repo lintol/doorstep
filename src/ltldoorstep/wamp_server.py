@@ -1,4 +1,5 @@
 from autobahn.asyncio.wamp import ApplicationRunner, ApplicationSession
+import json
 from autobahn.wamp.types import RegisterOptions
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -59,7 +60,7 @@ class ReportResource():
         self._engine = engine
 
     async def get(self, session):
-        return self._engine.monitor_pipeline(session)
+        return json.dumps(await self._engine.monitor_pipeline(session))
 
 class DoorstepComponent(ApplicationSession):
     def __init__(self, engine, sessions, *args, **kwargs):
@@ -88,8 +89,11 @@ class DoorstepComponent(ApplicationSession):
         return await self.register(_routine, uri)
 
     async def onJoin(self, details):
+        def get_session_pair():
+            return (self._id, self.make_session())
+
         await self.register(
-            lambda: (self._id, self.make_session()),
+            get_session_pair,
             'com.ltldoorstep.engage',
             RegisterOptions(invoke='roundrobin')
         )

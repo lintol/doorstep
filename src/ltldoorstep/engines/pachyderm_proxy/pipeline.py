@@ -49,7 +49,7 @@ class PachydermPipeline:
 
         job = self._current_job
 
-        for _ in range(retry_count):
+        for __ in range(retry_count):
             if job and not job.state in ignore_states:
                 break
 
@@ -58,7 +58,7 @@ class PachydermPipeline:
 
             job = self.check_started()
         else:
-            raise RuntimeError("Gave up waiting for pipeline job%s" % error_suffix)
+            raise RuntimeError(_("Gave up waiting for pipeline job%s") % error_suffix)
 
         self._current_job = job
 

@@ -36,7 +36,7 @@ def process(ctx, filename, workflow, engine):
     printer = ctx.obj['printer']
     bucket = ctx.obj['bucket']
 
-    click.echo(_('Engine: %s' % engine))
+    click.echo(_("Engine: %s" % engine))
     engine = engines[engine]()
     result = engine.run(filename, workflow, bucket=bucket)
     printer.print_report(result)
@@ -50,7 +50,7 @@ def process(ctx, filename, workflow, engine):
 def serve(ctx, engine, protocol):
     printer = ctx.obj['printer']
 
-    click.echo(_('Engine: %s' % engine))
+    click.echo(_("Engine: %s" % engine))
 
     engine = engines[engine]()
 
@@ -61,5 +61,5 @@ def serve(ctx, engine, protocol):
         from ltldoorstep.wamp_server import launch_wamp
         launch_wamp(engine)
     else:
-        raise RuntimeError("Unknown protocol")
+        raise RuntimeError(_("Unknown protocol"))
 

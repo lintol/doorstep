@@ -42,7 +42,7 @@ def check_character_categories(csv):
     string_csv.apply(np.vectorize(lambda cell: categories.update({unicodedata.category(c) for c in cell})))
 
     return {
-        'check_character_categories:cat-found': ('Character categories found', logging.INFO, {unicode_category_major[c[0]] for c in categories})
+        'check_character_categories:cat-found': ('Character categories found', logging.INFO, [unicode_category_major[c[0]] for c in categories])
     }
 
 def check_std_dev():

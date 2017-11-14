@@ -122,7 +122,7 @@ class PachydermEngine:
             # TODO: safely set file extension
             self.add_data('data.csv', content, session, bucket)
 
-            results = self.monitor_pipeline(session)
+            results = await self.monitor_pipeline(session)
 
         return results
 
@@ -150,7 +150,7 @@ class PachydermEngine:
             error_suffix=" to finish"
         )
 
-    def monitor_pipeline(self, session):
+    async def monitor_pipeline(self, session):
         """Check pipeline for completion and process results."""
 
         job = self._wait_for_pipeline(
@@ -166,11 +166,11 @@ class PachydermEngine:
             logs = self._clients['pps'].get_logs(job_id=job.job.id)
             print(logs[0])
             print('\n'.join([log.message.rstrip() for log in logs]))
-            raise RuntimeError('Job failed')
+            raise RuntimeError(_("Job failed"))
         elif job.state == pypachy.JOB_KILLED:
-            raise RuntimeError('Job was killed')
+            raise RuntimeError(_("Job was killed"))
         else:
-            raise RuntimeError('Unknown job status')
+            raise RuntimeError(_("Unknown job status)"))
 
         output = session['pipeline'].pull_output('/doorstep.out')
 
