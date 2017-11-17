@@ -3,10 +3,11 @@
 class PachydermCommit:
     """Proxy class for a Pachyderm Commit."""
 
-    def __init__(self, clients, repo, name):
+    def __init__(self, clients, repo, name, provenance=None):
         self._repo = repo
         self._name = name
         self._clients = clients
+        self._provenance = provenance
 
     def put_file_bytes(self, filename, content):
         """Send a file to Pachyderm bytewise."""
@@ -36,7 +37,31 @@ class PachydermCommit:
 
         return '%s/%s' % (self._repo, self._name)
 
+    def get_provenance(self):
+        """Get provenance of this commit, if any."""
+
+        return self._provenance
+
     def pull_file(self, path):
         """Retrieve a file from Pachyderm."""
 
         return self._clients['pfs'].get_file(self.get_full_name(), path)
+
+    @classmethod
+    def from_raw(cls, commit, clients):
+        """Turn a gRPC commit into our own object."""
+
+        provenance = None
+
+        if commit.provenance:
+            provenance = [{
+                'id': prov.id,
+                'repo_name': prov.repo.name
+            } for prov in commit.provenance]
+
+        return cls(
+            clients,
+            commit.commit.repo,
+            commit.commit.id,
+            provenance
+        )

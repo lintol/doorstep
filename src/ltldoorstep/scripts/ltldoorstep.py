@@ -2,6 +2,7 @@ import click
 import gettext
 from ltldoorstep import printer
 from ltldoorstep.engines import engines
+import asyncio
 
 @click.group()
 @click.option('--debug/--no-debug', default=False)
@@ -38,7 +39,9 @@ def process(ctx, filename, workflow, engine):
 
     click.echo(_("Engine: %s" % engine))
     engine = engines[engine]()
-    result = engine.run(filename, workflow, bucket=bucket)
+
+    loop = asyncio.get_event_loop()
+    result = loop.run_until_complete(engine.run(filename, workflow, bucket=bucket))
     printer.print_report(result)
 
     print(printer.get_output())
