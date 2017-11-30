@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 from .pachyderm_proxy.repo import make_repo
 from .pachyderm_proxy.pipeline import make_pipeline
 from .pachyderm_proxy.job_error import JobFailedException
+from .pachyderm_proxy.pypachy_wrapper import PfsClientWrapper
 
 
 class PachydermEngine:
@@ -25,7 +26,7 @@ class PachydermEngine:
     def __init__(self):
         self.set_clients(
             pps=pypachy.pps_client.PpsClient(),
-            pfs=pypachy.pfs_client.PfsClient()
+            pfs=PfsClientWrapper()
         )
 
         self._pipeline_template = os.path.join(
@@ -127,7 +128,9 @@ class PachydermEngine:
 
             monitor_pipeline, monitor_output = await self.monitor_pipeline(session)
 
-            commit = await monitor_output.get()
+            commit = await monitor_output
+
+            monitor_pipeline.cancel()
 
             results = await self.get_output(session)
 
@@ -182,7 +185,7 @@ class PachydermEngine:
         asyncio.ensure_future(self.watch_for_output(queue, session))
         pipeline_fut = asyncio.ensure_future(self.wait_for_pipeline(session))
 
-        return (pipeline_fut, queue)
+        return (pipeline_fut, queue.get())
 
     async def get_output(self, session):
         output = session['pipeline'].pull_output('/doorstep.out')

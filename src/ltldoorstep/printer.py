@@ -1,6 +1,7 @@
 import colorama
 import logging
 import tabulate
+import json
 
 class TermColorPrinter:
     def __init__(self, debug=False):
@@ -58,3 +59,19 @@ class TermColorPrinter:
         if style:
             output = style + output + colorama.Style.RESET_ALL
         self._output_sections.append(output)
+
+
+class JsonPrinter:
+    def __init__(self, debug=False):
+        self._result_sets = []
+        self._debug = debug
+        self._output = ''
+
+    def get_debug(self):
+        return self._debug
+
+    def get_output(self):
+        return self._output
+
+    def print_report(self, result_sets):
+        self._output = json.dumps(result_sets)

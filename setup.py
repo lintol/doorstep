@@ -57,7 +57,8 @@ setup(
         'pypachy',
         'pandas',
         'boto3',
-        'autobahn'
+        'autobahn',
+        'ckanapi'
     ],
     include_package_data=True,
     tests_require=[

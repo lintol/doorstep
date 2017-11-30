@@ -10,7 +10,7 @@ def structure_report(report):
     results['goodtables:table-count'] = ('Number of tables', logging.INFO, report['table-count'])
     results['goodtables:formats'] = ('Data formats', logging.INFO, ', '.join({table['format'] for table in report['tables']}))
 
-    # results['goodtables:all'] = ('Full Goodtables analysis', logging.INFO, report)
+    results['goodtables:all'] = ('Full Goodtables analysis', logging.INFO, report)
 
     return [results]
 

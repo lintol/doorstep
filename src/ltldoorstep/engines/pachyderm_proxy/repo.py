@@ -3,8 +3,12 @@
 import asyncio
 from contextlib import contextmanager
 from .commit import PachydermCommit
+import threading
 import sys
 import janus
+
+SUB_REFRESH_RATE = 5. # Seconds between streaming calls from gRPC
+
 
 class PachydermRepo:
     """Proxy class for a Pachyderm Repo."""
@@ -32,12 +36,10 @@ class PachydermRepo:
         if not branch:
             branch = self._master
 
-        fut = self._commit_watch_futures[branch.get_name()]
+        fut, cancel = self._commit_watch_futures[branch.get_name()]
 
-        print("Stopping")
-        loop = asyncio.get_event_loop()
-        loop.call_soon_threadsafe(_stop_watching_commits_real, fut)
-        print("Stopped")
+        cancel.set()
+        await fut
 
     async def watch_commits(self, branch=None, from_commit=None):
         """Fill queue of commits."""
@@ -52,6 +54,7 @@ class PachydermRepo:
             loop = asyncio.get_event_loop()
             queue = janus.Queue(loop=loop)
 
+            cancel_event = threading.Event()
             commit_future = loop.run_in_executor(
                 None,
                 _watch_commits_real,
@@ -60,11 +63,11 @@ class PachydermRepo:
                 self._clients,
                 self.get_name(),
                 branch.get_name(),
-                from_commit.get_name() if from_commit else None
-
+                from_commit.get_name() if from_commit else None,
+                cancel_event
             )
 
-            self._commit_watch_futures[branch.get_name()] = commit_future
+            self._commit_watch_futures[branch.get_name()] = (commit_future, cancel_event)
             self._commit_watch_queues[branch.get_name()] = queue
 
         return queue.async_q
@@ -106,17 +109,14 @@ def make_repo(clients, name):
     finally:
         clients['pfs'].delete_repo(name)
 
-def _subscribe_commit_real(clients, repo_name, branch_name, from_commit_name):
+def _subscribe_commit_real(clients, repo_name, branch_name, from_commit_name, cancel_event):
     """Subscribe to commits on a branch."""
 
-    for commit in clients['pfs'].subscribe_commit(repo_name, branch_name, from_commit_name):
+    for commit in clients['pfs'].refreshing_subscribe_commit(repo_name, branch_name, from_commit_name, timeout=SUB_REFRESH_RATE, cancel=cancel_event):
         yield commit
 
-def _watch_commits_real(loop, queue, clients, repo_name, branch_name, from_commit_name):
+def _watch_commits_real(loop, queue, clients, repo_name, branch_name, from_commit_name, cancel_event):
     """Observe commits comming from API."""
 
-    for commit in _subscribe_commit_real(clients, repo_name, branch_name, from_commit_name):
+    for commit in _subscribe_commit_real(clients, repo_name, branch_name, from_commit_name, cancel_event):
         queue.put(PachydermCommit.from_raw(commit, clients))
-
-def _stop_watching_commits_real(fut):
-    fut.cancel()

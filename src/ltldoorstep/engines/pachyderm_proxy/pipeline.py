@@ -108,3 +108,4 @@ def make_pipeline(clients, definition, session):
         yield pipeline
     finally:
         clients['pps'].delete_pipeline(pipeline.get_name(), delete_jobs=True, delete_repo=True)
+        print('deleting')
