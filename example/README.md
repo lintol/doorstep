@@ -32,6 +32,6 @@ This dataset has been derived from the `osni-ni-boundary.geojson` dataset, simpl
 
 To test processors, run:
 
-  python3 -m pytest
+  python3 -m pytest test/test_NAME.py
 
-in the /examples directory.
+in the /examples directory, with your virtual environment active.
