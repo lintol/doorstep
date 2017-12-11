@@ -12,7 +12,7 @@ import geojson
 import logging
 from dask.threaded import get
 
-DEFAULT_OUTLINE_GEOJSON = 'outline.geojson'
+DEFAULT_OUTLINE_GEOJSON = 'data/osni-ni-outline-lowres.geojson'
 
 
 def find_ni_data(geojson, ni_json=None):
@@ -35,7 +35,7 @@ def find_ni_data(geojson, ni_json=None):
 
     report['found'] = ("Geographical data found from NI:", logging.INFO, ','.join(dataset))
 
-    return report
+    return [report]
 
 def get_workflow(filename):
     workflow = {

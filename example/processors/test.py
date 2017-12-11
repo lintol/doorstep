@@ -36,9 +36,13 @@ def return_report(csv):
 
     np.vectorize(lambda cell: dataset.update({analysis(a)for a in cell}))
 
-    return {
-        'check_pii_detail:pii-found': ('PII details found...', logging.INFO, [pii_details[d[0]] for d in dataset])
-    }
+    report = {}
+    for key, details in analysis.items():
+        if details:
+            code = 'check_pii_detail:pii-found:{key}'.format(key=key)
+            report[code] = ('PII details found...', logging.INFO, details)
+
+    return [report]
 
  
 def get_workflow(filename):
@@ -55,9 +59,7 @@ def get_workflow(filename):
     #  report_returned: Using return_report and loading csv file....
     #  output: This will be the output
     workflow = {
-        'loading': (p.read_csv, filename),
-        'report_returned': (return_report, 'loading'),
-        'output': (list, ['report_returned'])
+        'output': (return_report, filename)
     }
 
     # Returns workflow dict

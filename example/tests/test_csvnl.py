@@ -13,4 +13,6 @@ def test_csvnl_on_bad():
     report = results[0]
     assert 'goodtables:error-count' not in report
     assert report['goodtables:table-count'][2] == 1
-    assert report['goodtables:formats'][2] == 'csv'
+    assert report['goodtables:validate:format'][2] == 'csv'
+    assert report['goodtables:median'][2] is None
+    assert report['goodtables:sequential-values'][2] is None

@@ -20,13 +20,25 @@ def check_csv(report):
     results = {}
 
     # format check
-    results['goodtables:validate:format'] = ('Table is in format : ', logging.INFO, report['format'])
+    formats = {table['format'] for table in report['tables']}
+    results['goodtables:validate:format'] = ('Table is in format : ', logging.INFO, ', '.join(formats))
     # table count
-    results['goodtables:table-count'] = ('Table count: ', logging.INFO, report['table_count'])
+    results['goodtables:table-count'] = ('Table count: ', logging.INFO, report['table-count'])
+
+    error_rows = []
+    for table in report['tables']:
+        for error in table['errors']:
+            if error['code'] == 'deviated-value':
+                error_rows.append('median')
+            if error['code'] == 'sequential-value':
+                error_rows.append('sequential')
+
     # median
-    results['goodtables:median'] = ('Median value', logging.INFO, report['median'])
+    if 'median' in error_rows:
+        results['goodtables:median'] = ('Median value', logging.INFO, None)
     # sequential values
-    results['goodtables:sequential_values'] = ('Check for sequential values', logging.INFO, report['in_seqeunce'])
+    if 'sequential' in error_rows:
+        results['goodtables:sequential-values'] = ('Check for non-sequential values', logging.INFO, None)
 
     # full goodtables
     results['goodtables:all'] = ('Full analysis', logging.INFO, report)
@@ -35,9 +47,15 @@ def check_csv(report):
     return [results]
 
 
+def run_validation(filename):
+    return validate(filename, checks=[
+        {'deviated-value': {'column': 'Mean', 'average': 'median', 'interval': 1}},
+        {'sequential-value': {'column': 'ID'}}
+    ])
+
 def get_workflow(filename):
     workflow = {
-        'validate': (validate, filename),
+        'validate': (run_validation, filename),
         'output': (check_csv, 'validate')
     }
     return workflow
