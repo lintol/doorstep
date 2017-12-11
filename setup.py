@@ -40,6 +40,7 @@ setup(
     keywords='validation lintol data',
     setup_requires=['pytest-runner'],
     extras_require={
+        'examples': ['piianalyzer', 'geojson_utils'],
         'babel-commands': ['Babel'],
         'sphinx-commands': ['sphinx']
     },

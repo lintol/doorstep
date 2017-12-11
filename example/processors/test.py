@@ -9,7 +9,9 @@ from piianalyzer.analyzer import PiiAnalyzer
 import logging
 import numpy as np
 import pandas as p
+from dask.threaded import get
 import sys
+
 pii_details = {
     'N': 'name',
     'P': 'phone_no',
@@ -63,4 +65,5 @@ def get_workflow(filename):
 
 if __name__ == "__main__":
     argv = sys.argv
-    print(return_report(argv[0]))
+    workflow = get_workflow(argv[1])
+    print(get(workflow, 'output'))

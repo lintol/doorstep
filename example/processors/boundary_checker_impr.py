@@ -9,18 +9,24 @@ For now, please make sure that the second geojson in the argument is a boundary 
 from geojson_utils import point_in_multipolygon
 import logging
 import json
+from dask.threaded import get
 import pandas as p
 import csv
 
+DEFAULT_OUTLINE_GEOJSON = 'outline.geojson'
 
 
-def find_ni_data(first_file, ni_data):
+def find_ni_data(first_file, ni_data=None):
     report = {}
+
+    if ni_data is None:
+        ni_data = DEFAULT_OUTLINE_GEOJSON
 
     # If csv file has these attributes then...
     if ['Latitude', 'Longitude'] in p.read_csv(first_file):
 
-        # TODO: could put a check here if file is csv or geojson... need to do this later.
+        # TODO: could put a check here if file is csv or geojson...
+        # need to do this later.
 
         # Feed csv file into convert_csv_json in order to convert it into json...
         convert_csv_json(first_file)
@@ -28,11 +34,13 @@ def find_ni_data(first_file, ni_data):
         # This var becomes the converted json file that we want to compare to the NI data.
         data_to_compare =  p.read_json(first_file)
 
-        # This is the second geojson file that should be NI boundaries. This is what we are comparing the first csv/json file to.
+        # This is the second geojson file that should be NI boundaries.
+        # This is what we are comparing the first csv/json file to.
         ni_compare_data = p.read_json(ni_data)
 
-        # This var contains the output of the function point_in_multipolygon. This should contain a bool.
-        check=point_in_multipolygon(data_to_compare, ni_compare_data)
+        # This var contains the output of the function point_in_multipolygon.
+        # This should contain a bool.
+        check = point_in_multipolygon(data_to_compare, ni_compare_data)
 
         # If the points in the csv data match/are contained in the NI data json, do this...
         if check = True :
@@ -60,3 +68,14 @@ def convert_csv_json(file):
 
     json_data = json.dumps(data)
     return json_data
+
+def get_workflow(filename):
+    workflow = {
+        'output': (find_ni_data, filename)
+    }
+    return workflow
+
+if __name__ == "__main__":
+    argv = sys.argv
+    workflow = get_workflow(argv[1])
+    print(get(workflow, 'output'))

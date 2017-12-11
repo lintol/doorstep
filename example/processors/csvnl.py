@@ -1,4 +1,4 @@
-"""Goodtables processor.
+"""Goodtables processor (improved)
 
 This function uses goodtables library in order to make sure that:
  * the table is valid
@@ -13,11 +13,14 @@ from goodtables import validate
 import logging
 import sys
 import pandas as p
+from dask.threaded import get
 
 def check_csv(report):
-
     # setting up results dictonary
     results = {}
+
+    if ni_data is None:
+        ni_data = DEFAULT_OUTLINE_GEOJSON
 
     # format check
     results['goodtables:validate:format'] = ('Table is in format : ', logging.INFO, report['format'])
@@ -44,4 +47,5 @@ def get_workflow(filename):
 
 if __name__ == "__main__":
     argv = sys.argv
-    print(check_csv(argv))
+    workflow = get_workflow(argv[1])
+    print(get(workflow, 'output'))

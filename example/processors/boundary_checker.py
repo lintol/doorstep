@@ -6,11 +6,20 @@ Make sure that you have a dataset of NI for the second argument.
 
 """
 
+import sys
+from geojson_utils import point_in_multipolygon
 import numpy
 import logging
-from geojson_utils import point_in_multipolygon
+from dask.threaded import get
 
-def find_ni_data(geojson, ni_json):
+DEFAULT_OUTLINE_GEOJSON = 'outline.geojson'
+
+
+def find_ni_data(geojson, ni_json=None):
+
+    if ni_json is None:
+        ni_json = DEFAULT_OUTLINE_GEOJSON
+
     string_geojson = geojson.select_dtypes(include=['object'])
     dataset = set()
     data_str = '{type: multipolygon', string_geojson, '}'
@@ -27,3 +36,14 @@ def find_ni_data(geojson, ni_json):
     report['found'] = ("Geographical data found from NI:", logging.INFO, ','.join(dataset))
 
     return report
+
+def get_workflow(filename):
+    workflow = {
+        'output': (find_ni_data, filename)
+    }
+    return workflow
+
+if __name__ == "__main__":
+    argv = sys.argv
+    workflow = get_workflow(argv[1])
+    print(get(workflow, 'output'))

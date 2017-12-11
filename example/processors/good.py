@@ -1,4 +1,6 @@
 from goodtables import validate
+import sys
+from dask.threaded import get
 import logging
 
 def structure_report(report):
@@ -20,3 +22,8 @@ def get_workflow(filename):
         'output': (structure_report, 'validate')
     }
     return workflow
+
+if __name__ == "__main__":
+    argv = sys.argv
+    workflow = get_workflow(argv[1])
+    print(get(workflow, 'output'))
