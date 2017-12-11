@@ -8,7 +8,7 @@ Make sure that you have a dataset of NI for the second argument.
 
 import sys
 from geojson_utils import point_in_multipolygon
-import numpy
+import geojson
 import logging
 from dask.threaded import get
 

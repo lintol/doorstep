@@ -10,7 +10,11 @@ def structure_report(report):
         results['goodtables:error-count'] = ('Errors found', logging.WARNING, report['error-count'])
 
     results['goodtables:table-count'] = ('Number of tables', logging.INFO, report['table-count'])
-    results['goodtables:formats'] = ('Data formats', logging.INFO, ', '.join({table['format'] for table in report['tables']}))
+
+    tables = report['tables']
+
+    formats = {table['format'] for table in tables}
+    results['goodtables:formats'] = ('Data formats', logging.INFO, ', '.join(formats))
 
     results['goodtables:all'] = ('Full Goodtables analysis', logging.INFO, report)
 

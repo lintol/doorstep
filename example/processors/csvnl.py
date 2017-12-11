@@ -19,9 +19,6 @@ def check_csv(report):
     # setting up results dictonary
     results = {}
 
-    if ni_data is None:
-        ni_data = DEFAULT_OUTLINE_GEOJSON
-
     # format check
     results['goodtables:validate:format'] = ('Table is in format : ', logging.INFO, report['format'])
     # table count
