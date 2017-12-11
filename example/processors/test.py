@@ -43,12 +43,3 @@ def get_workflow(filename):
 if __name__ == "__main__":
     argv = sys.argv
     print(return_report(argv[0]))
-
-
-
-
-
-
-
-
-

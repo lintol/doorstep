@@ -33,5 +33,3 @@ def get_workflow(filename):
 if __name__ == "__main__":
     argv = sys.argv
     print(check_csv(argv))
-
-
