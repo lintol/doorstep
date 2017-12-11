@@ -1,3 +1,10 @@
+"""PII Checker
+
+This function will return the results of a csv file to find
+personally identifable info(PII)
+
+"""
+
 from piianalyzer.analyzer import PiiAnalyzer
 import logging
 import numpy as np
@@ -10,19 +17,20 @@ pii_details = {
     'C': 'credit_card_no',
     'E': 'email_address',
     'O': 'organization'
-
 }
 
-# This function will return the results of a csv file to find personally identifable info(PII)
 def return_report(csv):
+    # Feeding in csv file to PIIAnalyzer...
+    piianalyzer = PiiAnalyzer(csv)
 
-    piianalyzer = PiiAnalyzer(csv)  # Feeding in csv file to PIIAnalyzer...
+    # Set dataset object to set method
+    dataset = set()
 
-    dataset = set()  # set dataset object to set method
+    # Assigning the results of the analysis to analysis var...
+    analysis = piianalyzer.analysis()
 
-    analysis = piianalyzer.analysis()  # Assigning the results of the analysis to analysis var...
-   
-    report = {}  # setting up report dict....
+    # Setting up report dict....
+    report = {}
 
     np.vectorize(lambda cell: dataset.update({analysis(a)for a in cell}))
 
@@ -31,14 +39,27 @@ def return_report(csv):
     }
 
  
-# This function will return the workflow taken from return_report, feeds a csv file into return_report
 def get_workflow(filename):
-    workflow = {  # Setting up workflow dict...
-        'loading': (p.read_csv, filename), # Using Pandas library to read csv file passed in, and also pass the filename
-        'report_returned': (return_report, 'loading'), # Using return_report and loading csv file....
-        'output': (list, ['report_returned']) # This will be the output
+    """Workflow builder
+
+    This function will return the workflow taken from return_report,
+    feeds a csv file into return_report
+
+    """
+
+    # Setting up workflow dict...
+    #  loading: Using Pandas library to read csv file passed in,
+    #           and also pass the filename
+    #  report_returned: Using return_report and loading csv file....
+    #  output: This will be the output
+    workflow = {
+        'loading': (p.read_csv, filename),
+        'report_returned': (return_report, 'loading'),
+        'output': (list, ['report_returned'])
     }
-    return workflow  # Returns workflow dict
+
+    # Returns workflow dict
+    return workflow
 
 if __name__ == "__main__":
     argv = sys.argv

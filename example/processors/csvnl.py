@@ -1,26 +1,38 @@
+"""Goodtables processor.
+
+This function uses goodtables library in order to make sure that:
+ * the table is valid
+ * count the number of tables
+ * median values
+ * sequential values check
+ * full check with goodtables
+
+"""
+
 from goodtables import validate
 import logging
 import sys
 import pandas as p
-# this function uses goodtables library in order to make sure that:
-# the table is valid
-# count the number of tables
-# median values
-# sequential values check
-# full check with goodtables
 
 def check_csv(report):
 
-    results = {} # setting up results dictonary
+    # setting up results dictonary
+    results = {}
 
-    results['goodtables:validate:format'] = ('Table is in format : ', logging.INFO, report['format']) #format check
-    results['goodtables:table-count'] = ('Table count: ', logging.INFO, report['table_count']) # table count
-    results['goodtables:median'] = ('Median value', logging.INFO, report['median']) # median
-    results['goodtables:sequential_values'] = ('Check for sequential values', logging.INFO, report['in_seqeunce']) # sequential values
+    # format check
+    results['goodtables:validate:format'] = ('Table is in format : ', logging.INFO, report['format'])
+    # table count
+    results['goodtables:table-count'] = ('Table count: ', logging.INFO, report['table_count'])
+    # median
+    results['goodtables:median'] = ('Median value', logging.INFO, report['median'])
+    # sequential values
+    results['goodtables:sequential_values'] = ('Check for sequential values', logging.INFO, report['in_seqeunce'])
 
-    results['goodtables:all'] = ('Full analysis', logging.INFO, report) # full goodtables
+    # full goodtables
+    results['goodtables:all'] = ('Full analysis', logging.INFO, report)
 
-    return [results] # returning results dict with checks
+    # returning results dict with checks
+    return [results]
 
 
 def get_workflow(filename):

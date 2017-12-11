@@ -1,16 +1,16 @@
+"""Boundary checking
+
+This function will find if certain geojson location data is within Northern Ireland.
+If not, it reports this back to the user.
+Make sure that you have a dataset of NI for the second argument.
+
+"""
+
 import numpy
 import logging
 from geojson_utils import point_in_multipolygon
-#import json
-
-
-# This function will find if certain geojson location data is within Northern Ireland.
-# If not, it reports this back to the user.
-# Make sure that you have a dataset of NI for the second argument.
-
 
 def find_ni_data(geojson, ni_json):
-
     string_geojson = geojson.select_dtypes(include=['object'])
     dataset = set()
     data_str = '{type: multipolygon', string_geojson, '}'
