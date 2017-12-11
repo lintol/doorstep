@@ -33,10 +33,6 @@ def return_report(csv):
 
     # Setting up report dict....
     report = {}
-
-    np.vectorize(lambda cell: dataset.update({analysis(a)for a in cell}))
-
-    report = {}
     for key, details in analysis.items():
         if details:
             code = 'check_pii_detail:pii-found:{key}'.format(key=key)
