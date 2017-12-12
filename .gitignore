@@ -10,3 +10,5 @@ __pycache__
 /~
 /*.csv
 /seafile-ignore.txt
+*.pyc
+dask-worker-space
