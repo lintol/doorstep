@@ -1,4 +1,6 @@
 from goodtables import validate
+import sys
+from dask.threaded import get
 import logging
 
 def structure_report(report):
@@ -8,7 +10,11 @@ def structure_report(report):
         results['goodtables:error-count'] = ('Errors found', logging.WARNING, report['error-count'])
 
     results['goodtables:table-count'] = ('Number of tables', logging.INFO, report['table-count'])
-    results['goodtables:formats'] = ('Data formats', logging.INFO, ', '.join({table['format'] for table in report['tables']}))
+
+    tables = report['tables']
+
+    formats = {table['format'] for table in tables}
+    results['goodtables:formats'] = ('Data formats', logging.INFO, ', '.join(formats))
 
     results['goodtables:all'] = ('Full Goodtables analysis', logging.INFO, report)
 
@@ -20,3 +26,8 @@ def get_workflow(filename):
         'output': (structure_report, 'validate')
     }
     return workflow
+
+if __name__ == "__main__":
+    argv = sys.argv
+    workflow = get_workflow(argv[1])
+    print(get(workflow, 'output'))

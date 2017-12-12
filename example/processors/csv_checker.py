@@ -1,4 +1,6 @@
 import numpy as np
+from dask.threaded import get
+import sys
 import pandas as pd
 import re
 import unicodedata
@@ -92,3 +94,8 @@ def get_workflow(filename):
         'output': (list, ['step-A', 'step-B', 'step-C', 'step-D'])
     }
     return workflow
+
+if __name__ == "__main__":
+    argv = sys.argv
+    workflow = get_workflow(argv[1])
+    print(get(workflow, 'output'))
