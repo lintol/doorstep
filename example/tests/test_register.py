@@ -10,7 +10,7 @@ def testing_register_pass():
 
     assert len(results)==1
     report = results[0]
-    assert report['reg_check_valid'][2] == ['The Portuguese Republic']
+    assert report['reg_check_valid: reg-valid:PT'] == 'Register valid'
    
 
        	

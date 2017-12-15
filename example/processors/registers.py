@@ -35,16 +35,20 @@ check_agaisnt = {
 }
 
 def gov_register_checker(data):
-	# making test_data into data loaded from json
-	test_data = json.loads(data)
-	# for loop to iterate through items in json register data
-	for key, check in test_dump_data.items():
-		# if statement to check if standards contained within check_agaisnt are contained in test_dump_data
-		if check_agaisnt in test_dump_data:	
-			code = "reg_check_valid: reg-valid:{key}".format(key=key)
-			report[code] = ("Register valid")
-	return [report]
-       
+    report = {}
+    # making test_data into data loaded from json
+    with open(data, 'r') as data_file:
+        test_data = json.load(data_file)
+    allowed_columns = set(check_agaisnt.values())
+    # for loop to iterate through items in json register data
+    for key, check in test_data.items():
+        # if statement to check if standards contained within check_agaisnt are contained in test_data
+        item = check['item'][0].keys()
+        if allowed_columns.issuperset(item):
+            code = "reg_check_valid: reg-valid:{key}".format(key=key)
+            report[code] = ("Register valid")
+    return [report]
+
 
 def check_register_id_unique(data):
     # setting up check for id...
@@ -74,12 +78,12 @@ def check_register_id_surjective(data):
 
 """This is the workflow builder. This function will feed the json file into each method and then return the result"""
 def return_workflow(file):
-   # setting up workflow dict
+    # setting up workflow dict
     workflow = {
 
-	'output_check' : (gov_register_checker, file),
-	'output_id_unique': (check_register_id_unique, file),
-	'output_sur': (check_register_id_surjective, file) 
+    'output_check' : (gov_register_checker, file),
+    'output_id_unique': (check_register_id_unique, file),
+    'output_sur': (check_register_id_surjective, file) 
     }
     return workflow 
 
