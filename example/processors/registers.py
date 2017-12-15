@@ -37,8 +37,6 @@ check_agaisnt = {
 def gov_register_checker(data):
 	# making test_data into data loaded from json
 	test_data = json.loads(data)
-	# dumping data from json so it can be read
-	test_data_dump = json.dump(test_data)
 	# for loop to iterate through items in json register data
 	for key, check in test_dump_data.items():
 		# if statement to check if standards contained within check_agaisnt are contained in test_dump_data
