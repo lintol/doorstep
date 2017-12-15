@@ -38,9 +38,9 @@ def gov_register_checker(data):
 	# making test_data into data loaded from json
 	test_data = json.loads(data)
 	# for loop to iterate through items in json register data
-	for key, check in test_dump_data.items():
+	for key, check in test_data.items():
 		# if statement to check if standards contained within check_agaisnt are contained in test_dump_data
-		if check_agaisnt in test_dump_data:	
+		if check_agaisnt in test_data:	
 			code = "reg_check_valid: reg-valid:{key}".format(key=key)
 			report[code] = ("Register valid")
 	return [report]
