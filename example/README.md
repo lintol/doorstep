@@ -28,7 +28,7 @@ The original dataset is available on the
 
 This dataset has been derived from the `osni-ni-boundary.geojson` dataset, simplified by [mapshaper](http://mapshaper.org/).
 
-### results.json
+### register-countries.json
 
 This dataset is the gov.uk [Country Register](https://country.register.gov.uk/), available under the
 [Open Government License v3](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/).
