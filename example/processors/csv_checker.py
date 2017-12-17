@@ -6,6 +6,7 @@ import re
 import unicodedata
 import unicodeblock.blocks
 import logging
+from ltldoorstep.processor import DoorstepProcessor
 
 unicode_category_major = {
     'L': ('letter'),
@@ -84,18 +85,22 @@ def check_ids_surjective(csv):
         report['check_ids_surjective:not-surjective'] = ('IDs are missing', logging.WARNING, '%d missing between %d and %d' % (expected_ids - unique_ids, min(ids), max(ids)))
     return report
 
-def get_workflow(filename):
-    workflow = {
-        'load-csv': (pd.read_csv, filename),
-        'step-A': (check_ids_surjective, 'load-csv'),
-        'step-B': (check_ids_unique, 'load-csv'),
-        'step-C': (check_character_categories, 'load-csv'),
-        'step-D': (check_character_blocks, 'load-csv'),
-        'output': (list, ['step-A', 'step-B', 'step-C', 'step-D'])
-    }
-    return workflow
+class CsvCheckerProcessor(DoorstepProcessor):
+    def get_workflow(self, filename, metadata={}):
+        workflow = {
+            'load-csv': (pd.read_csv, filename),
+            'step-A': (check_ids_surjective, 'load-csv'),
+            'step-B': (check_ids_unique, 'load-csv'),
+            'step-C': (check_character_categories, 'load-csv'),
+            'step-D': (check_character_blocks, 'load-csv'),
+            'output': (list, ['step-A', 'step-B', 'step-C', 'step-D'])
+        }
+        return workflow
+
+processor = CsvCheckerProcessor
 
 if __name__ == "__main__":
     argv = sys.argv
-    workflow = get_workflow(argv[1])
+    processor = CsvCheckerProcessor()
+    workflow = processor.get_workflow(argv[1])
     print(get(workflow, 'output'))

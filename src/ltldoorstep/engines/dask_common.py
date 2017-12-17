@@ -10,6 +10,7 @@ def execute(filename, module_name):
 def run(filename, mod):
     """Real runner for a given ltldoorstep processor module and datafile."""
 
-    workflow = mod.get_workflow(filename)
+    processor = mod.processor()
+    workflow = processor.get_workflow(filename)
 
     return threaded.get(workflow, 'output')

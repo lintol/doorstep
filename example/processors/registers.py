@@ -15,6 +15,7 @@ import logging
 import sys
 import os
 from fuzzywuzzy import process, fuzz
+from ltldoorstep.processor import DoorstepProcessor
 
 
 EXCLUDE_EMPTY_MATCHES = True
@@ -148,16 +149,20 @@ def gov_countries_register_checker(data):
 This function will feed the json file into each method and then return the result
 """
 
-def get_workflow(filename):
-    # setting up workflow dict
-    workflow = {
-        'load_csv' : (p.read_csv, filename),
-        'gov_countries_register_checker' : (gov_countries_register_checker, 'load_csv'),
-        'output': (list, 'gov_countries_register_checker')
-    }
-    return workflow 
+class RegisterCountryProcessor(DoorstepProcessor):
+    def get_workflow(self, filename, metadata={}):
+        # setting up workflow dict
+        workflow = {
+            'load_csv' : (p.read_csv, filename),
+            'gov_countries_register_checker' : (gov_countries_register_checker, 'load_csv'),
+            'output': (list, 'gov_countries_register_checker')
+        }
+        return workflow
+
+processor = RegisterCountryProcessor
 
 if __name__ == "__main__":
     argv = sys.argv
-    workflow = get_workflow(argv[1])
+    processor = RegisterCountryProcessor()
+    workflow = processor.get_workflow(argv[1])
     print(get(workflow, 'output'))

@@ -2,6 +2,7 @@ from goodtables import validate
 import sys
 from dask.threaded import get
 import logging
+from ltldoorstep.processor import DoorstepProcessor
 
 def structure_report(report):
     results = {}
@@ -20,14 +21,18 @@ def structure_report(report):
 
     return [results]
 
-def get_workflow(filename):
-    workflow = {
-        'validate': (validate, filename),
-        'output': (structure_report, 'validate')
-    }
-    return workflow
+class GoodTablesProcessor(DoorstepProcessor):
+    def get_workflow(self, filename, metadata={}):
+        workflow = {
+            'validate': (validate, filename),
+            'output': (structure_report, 'validate')
+        }
+        return workflow
+
+processor = GoodTablesProcessor
 
 if __name__ == "__main__":
     argv = sys.argv
-    workflow = get_workflow(argv[1])
+    processor = GoodTablesProcessor()
+    workflow = processor.get_workflow(argv[1])
     print(get(workflow, 'output'))

@@ -1,10 +1,11 @@
 import os
 from dask.threaded import get
 
-from processors import boundary_checker_impr as boundary_checker
+from processors.boundary_checker_impr import BoundaryCheckerImprovedProcessor
 
 def test_boundary_checker_on_pedestrian_crossings():
     path = os.path.join('data', 'pedestriancrossing.geojson')
+    boundary_checker = BoundaryCheckerImprovedProcessor()
     workflow = boundary_checker.get_workflow(path)
     results = get(workflow, 'output')
     assert len(results) == 1

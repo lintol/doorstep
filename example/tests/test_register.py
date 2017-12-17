@@ -1,9 +1,10 @@
 import os
 from dask.threaded import get
-from processors import registers
+from processors.registers import RegisterCountryProcessor
 
 def testing_register_pass():
     path = os.path.join('data', 'registers-sample.csv')
+    registers = RegisterCountryProcessor()
     workflow = registers.get_workflow(path)
     results = get(workflow, 'output')
 

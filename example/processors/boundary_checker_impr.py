@@ -14,6 +14,7 @@ import pandas as p
 import geopandas as gp
 import csv
 import sys
+from ltldoorstep.processor import DoorstepProcessor
 
 DEFAULT_OUTLINE_GEOJSON = 'data/osni-ni-outline-lowres.geojson'
 
@@ -60,13 +61,17 @@ def find_ni_data(first_file, ni_data=None):
 
     return [report]
 
-def get_workflow(filename):
-    workflow = {
-        'output': (find_ni_data, filename)
-    }
-    return workflow
+class BoundaryCheckerImprovedProcessor(DoorstepProcessor):
+    def get_workflow(self, filename, metadata={}):
+        workflow = {
+            'output': (find_ni_data, filename)
+        }
+        return workflow
+
+processor = BoundaryCheckerImprovedProcessor
 
 if __name__ == "__main__":
     argv = sys.argv
-    workflow = get_workflow(argv[1])
+    processor = BoundaryCheckerImprovedProcessor()
+    workflow = processor.get_workflow(argv[1])
     print(get(workflow, 'output'))
