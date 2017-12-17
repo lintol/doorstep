@@ -49,7 +49,6 @@ def gov_register_checker(data):
             report[code] = ("Register valid")
     return [report]
 
-
 def check_register_id_unique(data):
     # setting up check for id...
     ids = data['index-entry-number']
