@@ -8,11 +8,17 @@ import sys
 import json
 import uuid
 import pypachy
+import jinja2
 from concurrent.futures import ThreadPoolExecutor
 from .pachyderm_proxy.repo import make_repo
 from .pachyderm_proxy.pipeline import make_pipeline
 from .pachyderm_proxy.job_error import JobFailedException
 from .pachyderm_proxy.pypachy_wrapper import PfsClientWrapper
+
+ALLOWED_IMAGES = [
+    ('lintol/doorstep', 'latest'),
+    ('lintol/ds-csvlint', 'latest')
+]
 
 
 class PachydermEngine:
@@ -35,12 +41,17 @@ class PachydermEngine:
             'doorstep.json'
         )
 
-    def get_definition(self):
+    def get_definition(self, data_name='data', processors_name='processors'):
         """Load and set the pipeline definition."""
 
         if not self.pipeline_definition:
             with open(self._pipeline_template, 'r') as file_obj:
-                self.pipeline_definition = json.load(file_obj)
+                template = jinja2.Template(file_obj.read())
+            self.pipeline_definition = json.loads(template.render(
+                data=data_name,
+                processors=processors_name,
+                valid_images=['%s:%s' % pair for pair in ALLOWED_IMAGES]
+            ))
 
         return self.pipeline_definition
 
@@ -61,31 +72,56 @@ class PachydermEngine:
         """Mark a module_name as a processor."""
 
         filename = '/processor/%s.py' % module_name
-        self._add_file('processors', filename, content, session)
+
+        docker_image = 'lintol/doorstep'
+        docker_revision = 'latest'
+        lang = 'C.UTF-8' # TODO: more sensible default
+
+        if 'docker' in metadata:
+            if 'image' in metadata['docker']:
+                docker_image = metadata['docker']['image']
+                docker_revision = metadata['docker']['revision']
+
+        if 'lang' in metadata:
+            # TODO: check lang is valid
+            lang = metadata['lang']
+
+        if (docker_image, docker_revision) not in ALLOWED_IMAGES:
+            raise RuntimeError(_("Image supplied is not whitelisted"))
 
         metadata_json = json.dumps(metadata).encode('utf-8')
-        self._add_file('processors', '/processor/metadata.json', metadata_json, session)
+
+        docker = '{image}:{revision}'.format(image=docker_image, revision=docker_revision)
+        files = {
+            filename: content,
+            '/processor/metadata.json': metadata_json,
+            '/processor/LANG': lang.encode('utf-8'),
+            '/processor/IMAGE': docker.encode('utf-8')
+        }
+        self._add_files('processors', files, session)
 
     def add_data(self, filename, content, session, bucket=None):
         """Prepare to send a data file to Pachyderm."""
 
         filename = '/%s' % filename
-        self._add_file('data', filename, content, session, bucket)
 
-    def _add_file(self, category, filename, content, session, bucket=None):
+        self._add_files('data', {filename: content}, session, bucket)
+
+    def _add_files(self, category, files, session, bucket=None):
         """Transfer file to Pachyderm."""
 
         with session[category].make_commit('master') as commit:
-            if bucket:
-                commit.put_file_url(
-                    filename,
-                    's3://%s/%s' % (bucket, content)
-                )
-            else:
-                commit.put_file_bytes(
-                    filename,
-                    content
-                )
+            for filename, content in files.items():
+                if bucket:
+                    commit.put_file_url(
+                        filename,
+                        's3://%s/%s' % (bucket, content)
+                    )
+                else:
+                    commit.put_file_bytes(
+                        filename,
+                        content
+                    )
 
     @contextmanager
     def make_session(self):
@@ -100,7 +136,10 @@ class PachydermEngine:
         data_name = '%s-data' % name
         processors_name = '%s-processors' % name
 
-        pipeline_definition = self.get_definition()
+        pipeline_definition = self.get_definition(
+            data_name=data_name,
+            processors_name=processors_name
+        )
 
         with make_repo(clients, data_name) as data_repo, \
                 make_repo(clients, processors_name) as processors_repo:
@@ -191,7 +230,7 @@ class PachydermEngine:
         return (pipeline_fut, queue.get())
 
     async def get_output(self, session):
-        output = session['pipeline'].pull_output('/doorstep.out')
+        output = session['pipeline'].pull_output('/raw/processor.json')
 
         return ['\n'.join([line.decode('utf-8') for line in output])]
 

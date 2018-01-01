@@ -107,7 +107,7 @@ def make_repo(clients, name):
     try:
         yield PachydermRepo(clients, name)
     finally:
-        clients['pfs'].delete_repo(name)
+        pass # clients['pfs'].delete_repo(name)
 
 def _subscribe_commit_real(clients, repo_name, branch_name, from_commit_name, cancel_event):
     """Subscribe to commits on a branch."""
