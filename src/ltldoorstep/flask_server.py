@@ -1,4 +1,5 @@
 import werkzeug
+import json
 from flask import Flask
 import os
 from flask_restful import Resource, Api, reqparse
@@ -12,14 +13,16 @@ class Processor(Resource):
     def post(self):
         parse = reqparse.RequestParser()
         parse.add_argument('script', type=werkzeug.FileStorage, location='files')
+        parse.add_argument('metadata')
         args = parse.parse_args()
 
         content = args['script'].read()
         filename = args['script'].filename
+        metadata = json.loads(args['metadata'])
 
         module_name = os.path.splitext(os.path.basename(filename))[0]
 
-        app.engine.add_processor(module_name, content, app.session)
+        app.engine.add_processor(module_name, content, metadata, app.session)
         return 'Success'
 
 

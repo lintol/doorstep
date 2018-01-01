@@ -1,10 +1,11 @@
 import os
 from dask.threaded import get
 
-from processors import csvnl
+from processors.csvnl import GoodTablesProcessor
 
 def test_csvnl_on_bad():
     path = os.path.join('data', 'bad.csv')
+    csvnl = GoodTablesProcessor()
     workflow = csvnl.get_workflow(path)
     results = get(workflow, 'output')
 

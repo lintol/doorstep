@@ -1,10 +1,11 @@
 import os
 from dask.threaded import get
 
-from processors import good
+from processors.good import GoodTablesProcessor
 
 def test_good_on_bad():
     path = os.path.join('data', 'bad.csv')
+    good = GoodTablesProcessor()
     workflow = good.get_workflow(path)
     results = get(workflow, 'output')
 

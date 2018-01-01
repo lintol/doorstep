@@ -10,7 +10,7 @@
       "for processor in /pfs/doorstep-*-processors/*; do",
       "for data in /pfs/doorstep-*-data/*; do",
       "  output_file=/pfs/out/doorstep.out",
-      "  ltldoorstep --output json process $data $processor --engine=dask.threaded >> $output_file",
+      "  ltldoorstep --output json process $data $processor/*.py --metadata=$processor/metadata.json --engine=dask.threaded >> $output_file",
       "done",
       "done"
     ],

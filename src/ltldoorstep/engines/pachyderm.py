@@ -57,11 +57,14 @@ class PachydermEngine:
             'pfs': pfs
         }
 
-    def add_processor(self, module_name, content, session):
+    def add_processor(self, module_name, content, metadata, session):
         """Mark a module_name as a processor."""
 
-        filename = '/%s.py' % module_name
+        filename = '/processor/%s.py' % module_name
         self._add_file('processors', filename, content, session)
+
+        metadata_json = json.dumps(metadata).encode('utf-8')
+        self._add_file('processors', '/processor/metadata.json', metadata_json, session)
 
     def add_data(self, filename, content, session, bucket=None):
         """Prepare to send a data file to Pachyderm."""
@@ -110,12 +113,12 @@ class PachydermEngine:
                 session['pipeline'] = pipeline
                 yield session
 
-    async def run(self, filename, workflow_module, bucket=None):
+    async def run(self, filename, workflow_module, metadata, bucket=None):
         """Execute the pipeline on a Pachyderm cluster."""
 
         with self.make_session() as session:
             with open(workflow_module, 'r') as file_obj:
-                self.add_processor('processor', file_obj.read().encode('utf-8'), session)
+                self.add_processor('processor', file_obj.read().encode('utf-8'), metadata, session)
 
             if bucket:
                 content = filename

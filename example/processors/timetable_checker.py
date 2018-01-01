@@ -11,7 +11,6 @@ from geojson_utils import point_in_multipolygon
 import geojson
 import logging
 from dask.threaded import get
-from ltldoorstep.processor import DoorstepProcessor
 
 DEFAULT_OUTLINE_GEOJSON = 'data/osni-ni-outline-lowres.geojson'
 
@@ -38,17 +37,13 @@ def find_ni_data(geojson, ni_json=None):
 
     return [report]
 
-class BoundaryCheckerProcessor(DoorstepProcessor):
-    def get_workflow(self, filename, metadata={}):
-        workflow = {
-            'output': (find_ni_data, filename)
-        }
-        return workflow
-
-processor = BoundaryCheckerProcessor
+def get_workflow(filename):
+    workflow = {
+        'output': (find_ni_data, filename)
+    }
+    return workflow
 
 if __name__ == "__main__":
     argv = sys.argv
-    processor = BoundaryCheckerProcessor()
-    workflow = processor.get_workflow(argv[1])
+    workflow = get_workflow(argv[1])
     print(get(workflow, 'output'))

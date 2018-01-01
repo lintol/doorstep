@@ -1,96 +1,168 @@
 """This script will attempt to validate any json register files from gov.uk
+
 This will validate all government names e.g. council, country, street names
 The first function will check to see if the json file provided to the function contains certain features
 If they are contained, it is valid. If not, the json is not a valid register
 Second function checks if ids are unique
 Third function checks if ids are surjective i.e. are any ids missing?
-Fourth function creates a dict object that loads the json file and runs each function and returns it."""
+Fourth function creates a dict object that loads the json file and runs each function and returns it.
 
+"""
 
-"""Imports json, numpy, pandas, and logging."""
 import json
-import numpy as np
 import pandas as p
 import logging
 import sys
+import os
+from fuzzywuzzy import process, fuzz
+from ltldoorstep.processor import DoorstepProcessor
 
 
+EXCLUDE_EMPTY_MATCHES = True
+PROVIDE_SUGGESTIONS = True
+DEFAULT_REGISTER_LOCATION = 'register-countries.json'
 
-""" This is a dict object that contains categories commonly contained within a gov.uk register
+class RegisterCountryItem:
+    matches = ()
+    heading = None
+
+    def __init__(self, heading, matches, suggest=False, preprocess=None):
+        self.heading = heading
+        self.matches = matches
+        self.suggest = suggest and PROVIDE_SUGGESTIONS
+        self.preprocess = preprocess
+
+    def load_allowed(self, countries):
+        rows = [country[self.heading] for country in countries.values()]
+        self.allowed = set()
+
+        for row in rows:
+            if self.preprocess:
+                row = self.preprocess(row)
+
+            if isinstance(row, list):
+                self.allowed.update(row)
+            else:
+                self.allowed.add(row)
+
+    def find_columns(self, data):
+        columns = self.matches & {c.lower() for c in data.columns}
+        return columns
+
+    def analyse(self, value):
+        analysis = {'mismatch': value}
+
+        if self.suggest:
+            analysis['guess'] = process.extractOne(value, self.allowed, scorer=fuzz.token_set_ratio)
+
+        return analysis
+
+    def mismatch(self, series):
+        return ~series.isin(self.allowed)
+
+
+"""This is a dict object that contains categories commonly contained within a gov.uk register
  Data passed in will be checked against this in gov_register_checker
  This could be changed to suit different needs. """
 
-check_agaisnt = {
-    'c':'country',
-    'on':'official-name',
-    'n':'name',
-    'cn':'citizen-names',
-    'lat':'local-authority-type',
-    'sd':'start-date',
-    'ed':'end-date',
-    't':'territory',
-    'go':'government-organisation',
-    'rd':'registration-district',
-    'a':'area'
-}
+possible_columns = [
+    RegisterCountryItem(
+        'country',
+        {'countrycode', 'country', 'state', 'nationality'}
+    ),
+    RegisterCountryItem(
+        'official-name',
+        {'country', 'country_name'},
+        suggest=True
+    ),
+    RegisterCountryItem(
+        'name',
+        {'state', 'country', 'country_name'},
+        suggest=True
+    ),
+    RegisterCountryItem(
+        'citizen-names',
+        {'nationality'},
+        suggest=True,
+        preprocess=lambda r: [entry.replace('citizen', '').strip() for entry in r.split(';')]
+    )
+]
 
-def gov_register_checker(data):
+def find_relevant_columns(data):
+    columns = {k: [] for k in data.columns}
+
+    for col in possible_columns:
+        for k in col.find_columns(data):
+            columns[k].append(col)
+
+    return {k: v for k, v in columns.items() if v}
+
+def best_matching_series(series, columns):
+    series = series.dropna()
+    matches = [(col, series[col.mismatch(series)]) for col in columns]
+
+    if EXCLUDE_EMPTY_MATCHES:
+        matches = [match for match in matches if len(match[1]) < len(series)]
+
+    if matches:
+        col, series = min(matches, key=lambda m: len(m[1]))
+        return col.heading, {k: col.analyse(v) for k, v in series.iteritems()}
+
+    return None
+
+def gov_countries_register_checker(data):
     report = {}
+
     # making test_data into data loaded from json
-    with open(data, 'r') as data_file:
-        test_data = json.load(data_file)
-    allowed_columns = set(check_agaisnt.values())
-    # for loop to iterate through items in json register data
-    for key, check in test_data.items():
-        # if statement to check if standards contained within check_agaisnt are contained in test_data
-        item = check['item'][0].keys()
-        if allowed_columns.issuperset(item):
-            code = "reg_check_valid: reg-valid:{key}".format(key=key)
-            report[code] = ("Register valid")
+    register_filename = os.path.join('data', DEFAULT_REGISTER_LOCATION)
+
+    with open(register_filename, 'r') as data_file:
+        countries = {row['key']: row['item'][0] for row in json.load(data_file).values()}
+
+    for col in possible_columns:
+        col.load_allowed(countries)
+
+    columns = find_relevant_columns(data)
+
+    issues = {k: best_matching_series(data[k], v) for k, v in columns.items()}
+
+    issues = {k: issue for  k, issue in issues.items() if issue}
+
+    mismatching_columns = {k: issue[1] for k, issue in issues.items() if issue[1]}
+    report['country-mismatch'] = (
+        'Non-matching entries for states column data',
+        logging.WARNING,
+        mismatching_columns
+    )
+
+    checked_columns = {k: 'country-register-{col}'.format(col=issue[0]) for k, issue in issues.items()}
+    report['country-checked'] = (
+        'Columns that were checked for state attributes (best-fit)',
+        logging.INFO,
+        checked_columns
+    )
+
     return [report]
 
-def check_register_id_unique(data):
-    # setting up check for id...
-    ids = data['index-entry-number']
-    # report dict set up 
-    report = {} 
-    # min_duplicates checks if the length of the set of ids is lesser than the length of the ids
-    min_duplicates = len(set(ids)) < len(ids)
-    # if the min_duplicates var is more than 0 do this... 
-    if min_duplicates > 0: 
-        report['no_unique_ids'] = ('Warning: some duplicates were found!', logging.WARNING, '%d duplicate ids found' % (min_duplicates)) 
-    return report  
+"""This is the workflow builder.
 
-def check_register_id_surjective(data):
-    # setting up check for id....
-    ids = data['index-entry-number']
-    # setting up report as empty dict...
-    report = {} 
-    # unique_ids var is set to the result of the length function on the set of ids
-    unique_ids = len(set(ids)) 
-    # expected_ids is set to the sum of max amount of ids and the min amount of ids plus one
-    expected_ids = max(ids) - min(ids) + 1
-    # if the expected ids does not match the amount of unique ids do this... 
-    if expected_ids != unique_ids: 
-        report['missing'] = ('Warning: missing ids!', logging.WARNING, '%d missing ids' % (expected_ids - unique_ids, min(ids), max(ids)))  
-    return report 
+This function will feed the json file into each method and then return the result
+"""
 
-"""This is the workflow builder. This function will feed the json file into each method and then return the result"""
-def return_workflow(file):
-    # setting up workflow dict
-    workflow = {
+class RegisterCountryProcessor(DoorstepProcessor):
+    def get_workflow(self, filename, metadata={}):
+        # setting up workflow dict
+        workflow = {
+            'load_csv' : (p.read_csv, filename),
+            'gov_countries_register_checker' : (gov_countries_register_checker, 'load_csv'),
+            'output': (list, 'gov_countries_register_checker')
+        }
+        return workflow
 
-    'output_check' : (gov_register_checker, file),
-    'output_id_unique': (check_register_id_unique, file),
-    'output_sur': (check_register_id_surjective, file) 
-    }
-    return workflow 
-
-
+processor = RegisterCountryProcessor
 
 if __name__ == "__main__":
     argv = sys.argv
-    workflow = get_workflow(argv[1])
-    print(get(workflow, 'output_check'))
-    print(get(workflow, 'output_id_unique'))
-    print(get(workflow, 'output_sur'))
+    processor = RegisterCountryProcessor()
+    workflow = processor.get_workflow(argv[1])
+    print(get(workflow, 'output'))
