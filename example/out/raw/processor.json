@@ -1,12 +1,4 @@
 [
   {
-    "invalid_encoding": [
-      "Encoding error when parsing row, e.g. because of invalid characters",
-      20,
-      {
-        "row": 2,
-        "column": null
-      }
-    ]
   }
 ]

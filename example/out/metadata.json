@@ -1,6 +1,6 @@
 {
   "docker": {
-    "image": "lintol/ds-csvlint",
+    "image": "lintol/doorstep",
     "revision": "latest"
   }
 }

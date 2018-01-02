@@ -10,9 +10,9 @@ input_data = ENV['LINTOL_INPUT_DATA']
 data_files = Dir.entries(input_data)
 data_files.reject { | entry | File.directory?(entry) }
 
-input_file = File.join(input_data, data_files[0])
+input_file = File.new(File.join(input_data, data_files[0]))
 
-validator = Csvlint::Validator.new( File.new(input_file) )
+validator = Csvlint::Validator.new(input_file)
 
 translations = {
     :wrong_content_type => "Content type is not text/csv",
