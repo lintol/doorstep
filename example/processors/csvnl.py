@@ -14,6 +14,7 @@ import logging
 import sys
 import pandas as p
 from dask.threaded import get
+from ltldoorstep.processor import DoorstepProcessor
 
 def check_csv(report):
     # setting up results dictonary
@@ -53,14 +54,18 @@ def run_validation(filename):
         {'sequential-value': {'column': 'ID'}}
     ])
 
-def get_workflow(filename):
-    workflow = {
-        'validate': (run_validation, filename),
-        'output': (check_csv, 'validate')
-    }
-    return workflow
+class GoodTablesProcessor(DoorstepProcessor):
+    def get_workflow(self, filename, metadata={}):
+        workflow = {
+            'validate': (run_validation, filename),
+            'output': (check_csv, 'validate')
+        }
+        return workflow
+
+processor = GoodTablesProcessor
 
 if __name__ == "__main__":
     argv = sys.argv
-    workflow = get_workflow(argv[1])
+    processor = GoodTablesProcessor()
+    workflow = processor.get_workflow(argv[1])
     print(get(workflow, 'output'))

@@ -12,3 +12,6 @@ __pycache__
 /seafile-ignore.txt
 *.pyc
 dask-worker-space
+*SFConflict*
+~
+/example/out

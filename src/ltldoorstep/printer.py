@@ -3,18 +3,35 @@ import logging
 import tabulate
 import json
 
-class TermColorPrinter:
-    def __init__(self, debug=False):
+class Printer:
+    def __init__(self, debug=False, target=None):
         self._output_sections = []
         self._debug = debug
+        self._target = target
 
     def get_debug(self):
         return self._debug
 
+    def build_report():
+        raise NotImplementedError("No report builder implemented for this printer")
+
+    def get_output():
+        raise NotImplementedError("No outputter implemented for this printer")
+
+    def print_output(self):
+        output = self.get_output()
+
+        if self._target is None:
+            print(output)
+        else:
+            with open(self._target, 'w') as target_file:
+                target_file.write(output)
+
+class TermColorPrinter(Printer):
     def get_output(self):
         return '\n\n'.join(self._output_sections)
 
-    def print_report(self, result_sets):
+    def build_report(self, result_sets):
         levels = {
             logging.INFO: [],
             logging.WARNING: [],
@@ -61,17 +78,9 @@ class TermColorPrinter:
         self._output_sections.append(output)
 
 
-class JsonPrinter:
-    def __init__(self, debug=False):
-        self._result_sets = []
-        self._debug = debug
-        self._output = ''
-
-    def get_debug(self):
-        return self._debug
-
+class JsonPrinter(Printer):
     def get_output(self):
         return self._output
 
-    def print_report(self, result_sets):
+    def build_report(self, result_sets):
         self._output = json.dumps(result_sets)

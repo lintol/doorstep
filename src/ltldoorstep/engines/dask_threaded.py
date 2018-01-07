@@ -14,12 +14,14 @@ class DaskThreadedEngine:
         session['data-filename'] = filename
         session['data-content'] = content
 
-    def add_processor(self, filename, content, session):
+    def add_processor(self, filename, content, metadata, session):
         session['workflow-filename'] = filename
         session['workflow-content'] = content
+        session['metadata'] = metadata
 
     async def monitor_pipeline(self, session):
         workflow_module = session['workflow-filename']
+        metadata = session['metadata']
         filename = session['data-filename']
         content = {
             workflow_module: session['workflow-content'].decode('utf-8'),
@@ -29,12 +31,12 @@ class DaskThreadedEngine:
         with make_file_manager(content=content) as file_manager:
             mod = SourceFileLoader('custom_processor', file_manager.get(workflow_module))
             local_file = file_manager.get(filename)
-            result = run(local_file, mod.load_module())
+            result = run(local_file, mod.load_module(), metadata)
 
         return result
 
     @staticmethod
-    async def run(filename, workflow_module, bucket=None):
+    async def run(filename, workflow_module, metadata, bucket=None):
         """Start the multi-threaded execution process."""
 
         mod = SourceFileLoader('custom_processor', workflow_module)
@@ -42,7 +44,7 @@ class DaskThreadedEngine:
         result = None
         with make_file_manager(bucket) as file_manager:
             local_file = file_manager.get(filename)
-            result = run(local_file, mod.load_module())
+            result = run(local_file, mod.load_module(), metadata)
 
         return result
 

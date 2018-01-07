@@ -11,6 +11,7 @@ import numpy as np
 import pandas as p
 from dask.threaded import get
 import sys
+from ltldoorstep.processor import DoorstepProcessor
 
 pii_details = {
     'N': 'name',
@@ -41,27 +42,31 @@ def return_report(csv):
     return [report]
 
  
-def get_workflow(filename):
-    """Workflow builder
+class PiiProcessor(DoorstepProcessor):
+    def get_workflow(self, filename, metadata={}):
+        """Workflow builder
 
-    This function will return the workflow taken from return_report,
-    feeds a csv file into return_report
+        This function will return the workflow taken from return_report,
+        feeds a csv file into return_report
 
-    """
+        """
 
-    # Setting up workflow dict...
-    #  loading: Using Pandas library to read csv file passed in,
-    #           and also pass the filename
-    #  report_returned: Using return_report and loading csv file....
-    #  output: This will be the output
-    workflow = {
-        'output': (return_report, filename)
-    }
+        # Setting up workflow dict...
+        #  loading: Using Pandas library to read csv file passed in,
+        #           and also pass the filename
+        #  report_returned: Using return_report and loading csv file....
+        #  output: This will be the output
+        workflow = {
+            'output': (return_report, filename)
+        }
 
-    # Returns workflow dict
-    return workflow
+        # Returns workflow dict
+        return workflow
+
+processor = PiiProcessor
 
 if __name__ == "__main__":
     argv = sys.argv
-    workflow = get_workflow(argv[1])
+    processor = PiiProcessor()
+    workflow = processor.get_workflow(argv[1])
     print(get(workflow, 'output'))
