@@ -23,7 +23,6 @@ def structure_report(report):
 
 class GoodTablesProcessor(DoorstepProcessor):
     def get_workflow(self, filename, metadata={}):
-        print(metadata)
         workflow = {
             'validate': (validate, filename),
             'output': (structure_report, 'validate')
