@@ -9,6 +9,7 @@ import json
 import uuid
 import pypachy
 import jinja2
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from .pachyderm_proxy.repo import make_repo
 from .pachyderm_proxy.pipeline import make_pipeline
@@ -30,6 +31,9 @@ class PachydermEngine:
     pipeline_definition = None
 
     def __init__(self):
+        self.logger = logging.getLogger(__name__)
+        self.logger.debug("Setting up Pachyderm engine")
+
         self.set_clients(
             pps=pypachy.pps_client.PpsClient(),
             pfs=PfsClientWrapper()
@@ -71,6 +75,8 @@ class PachydermEngine:
     def add_processor(self, module_name, content, metadata, session):
         """Mark a module_name as a processor."""
 
+        self.logger.debug("Adding processor")
+
         filename = '/processor/%s.py' % module_name
 
         docker_image = 'lintol/doorstep'
@@ -100,12 +106,18 @@ class PachydermEngine:
         }
         self._add_files('processors', files, session)
 
+        self.logger.debug("Added processor")
+
     def add_data(self, filename, content, session, bucket=None):
         """Prepare to send a data file to Pachyderm."""
+
+        self.logger.debug("Adding data")
 
         filename = '/%s' % filename
 
         self._add_files('data', {filename: content}, session, bucket)
+
+        self.logger.debug("Added data")
 
     def _add_files(self, category, files, session, bucket=None):
         """Transfer file to Pachyderm."""

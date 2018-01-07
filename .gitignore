@@ -13,3 +13,4 @@ __pycache__
 dask-worker-space
 *SFConflict*
 ~
+/example/out
