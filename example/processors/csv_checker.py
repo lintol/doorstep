@@ -6,7 +6,7 @@ import re
 import unicodedata
 import unicodeblock.blocks
 import logging
-from ltldoorstep.processor import DoorstepProcessor
+from ltldoorstep.processor import DoorstepProcessor, tabular_add_issue
 
 unicode_category_major = {
     'L': ('letter'),
@@ -27,15 +27,22 @@ def check_character_blocks(csv):
     # consider double @functools.lru_cache(maxsize=128, typed=False) if required
     string_csv.apply(np.vectorize(lambda cell: block_set.update({unicodeblock.blocks.of(c) for c in cell})))
 
-    report = {}
-
     if None in block_set:
         block_set.remove(None)
-        report['check_character_blocks:unknown-cat'] = ('Unknown character type found', logging.WARNING, None)
+        tabular_add_issue(
+            'lintol-csv-checker',
+            logging.WARNING,
+            'unknown-category',
+            _("Unknown character type found")
+        )
 
-    report['check_character_blocks:blocks-found'] = ('Character blocks found', logging.INFO, ', '.join(block_set))
-
-    return report
+    tabular_add_issue(
+        'lintol-csv-checker',
+        logging.WARNING,
+        'blocks-found',
+        _("Character blocks found") + ': ' + ', '.join(block_set),
+        error_data={'block-set': list(block_set)}
+    )
 
 def check_character_categories(csv):
     # All characters are Latinate (unicodedata.normalize('NFKD')[0] is Latin)
@@ -44,9 +51,14 @@ def check_character_categories(csv):
     # consider double @functools.lru_cache(maxsize=128, typed=False) if required
     string_csv.apply(np.vectorize(lambda cell: categories.update({unicodedata.category(c) for c in cell})))
 
-    return {
-        'check_character_categories:cat-found': ('Character categories found', logging.INFO, [unicode_category_major[c[0]] for c in categories])
-    }
+    categories_found = [unicode_category_major[c[0]] for c in categories]
+    tabular_add_issue(
+        'lintol/csv-checker:1',
+        logging.INFO,
+        'categories-found',
+        _("Character categories found") + ': ' + ', '.join(categories_found),
+        error_data={'categories-found': categories_found}
+    )
 
 def check_std_dev():
     # Standard Deviation is non-negative
@@ -69,21 +81,33 @@ def check_std_dev():
 def check_ids_unique(csv):
     # IDs are unique
     ids = csv['ID']
-    report = {}
     min_duplicates = len(set(ids)) < len(ids)
     if min_duplicates > 0:
-        report['check_ids_unique:not-unique'] = ('IDs are not unique', logging.WARNING, 'At least %d duplicates' % min_duplicates)
-    return report
+        tabular_add_issue(
+            'lintol/csv-checker:1',
+            logging.WARNING,
+            'check-ids-unique:ids-not-unique',
+            _("IDs are not unique, at least %d duplicates") % min_duplicates,
+            error_data={'min-duplicates': min_duplicates}
+        )
 
 def check_ids_surjective(csv):
     # IDs are surjective onto their range
     ids = csv['ID']
-    report = {}
     unique_ids = len(set(ids))
     expected_ids = max(ids) - min(ids) + 1
     if expected_ids != unique_ids:
-        report['check_ids_surjective:not-surjective'] = ('IDs are missing', logging.WARNING, '%d missing between %d and %d' % (expected_ids - unique_ids, min(ids), max(ids)))
-    return report
+        tabular_add_issue(
+            'lintol:csv-checker:1',
+            logging.WARNING,
+            'check-ids-surjective:not-surjective',
+            _("IDs are missing, %d missing between %d and %d") % (expected_ids - unique_ids, min(ids), max(ids)),
+            error_data={
+                'missing-count': expected_ids - unique_ids,
+                'lowest-id': min(ids),
+                'highest-id': max(ids)
+            }
+        )
 
 class CsvCheckerProcessor(DoorstepProcessor):
     def get_workflow(self, filename, metadata={}):

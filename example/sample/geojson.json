@@ -1,6 +1,7 @@
 {
    "table-count" : 1,
    "warnings" : [],
++  "info" : [],
    "error-count" : 1,
 +  "supplementary": [
 +     {
@@ -22,7 +23,12 @@
 +              "processor": "boundary-checker-geojson",
                "code" : "boundary-failed",
                "message" : "Header in column 4 is duplicated to header in column(s) 2",
-+              "item-index" : 15
++              "item-index" : 15,
++              "item": [
+                  "193538",
+                  "Belfast",
+                  "Bell's Theorem Avenue"
+               ]
             }
          ],
          "format" : "csv",

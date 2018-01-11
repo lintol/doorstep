@@ -2,24 +2,34 @@ from goodtables import validate
 import sys
 from dask.threaded import get
 import logging
-from ltldoorstep.processor import DoorstepProcessor
+from ltldoorstep.processor import DoorstepProcessor, tabular_add_issue, set_properties
 
 def structure_report(report):
     results = {}
 
-    if report['error-count']:
-        results['goodtables:error-count'] = ('Errors found', logging.WARNING, report['error-count'])
+    levels = {
+        'errors': logging.ERROR,
+        'warnings': logging.WARNING,
+        'informations': logging.INFO
+    }
 
-    results['goodtables:table-count'] = ('Number of tables', logging.INFO, report['table-count'])
-
-    tables = report['tables']
-
-    formats = {table['format'] for table in tables}
-    results['goodtables:formats'] = ('Data formats', logging.INFO, ', '.join(formats))
-
-    results['goodtables:all'] = ('Full Goodtables analysis', logging.INFO, report)
-
-    return [results]
+    for level, log_level in levels.items():
+        table = report['tables'][0]
+        set_properties(
+            row_count=table['row-count'],
+            headers=table['headers']
+        )
+        if level in table and table[level]:
+            for error in table[level]:
+                tabular_add_issue(
+                    'frictionlessdata/goodtables-py:1',
+                    log_level,
+                    error['code'],
+                    error['message'],
+                    row_number=error['row-number'],
+                    column_number=error['column-number'],
+                    row=error['row']
+                )
 
 class GoodTablesProcessor(DoorstepProcessor):
     def get_workflow(self, filename, metadata={}):

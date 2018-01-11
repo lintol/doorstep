@@ -11,7 +11,7 @@ from geojson_utils import point_in_multipolygon
 import geojson
 import logging
 from dask.threaded import get
-from ltldoorstep.processor import DoorstepProcessor
+from ltldoorstep.processor import DoorstepProcessor, geojson_add_issue
 
 DEFAULT_OUTLINE_GEOJSON = 'data/osni-ni-outline-lowres.geojson'
 
@@ -28,15 +28,16 @@ def find_ni_data(geojson, ni_json=None):
     is_data_in_ni = json.loads(data_str)
     check = point_in_multipolygon(is_data_in_ni, ni_data_str)
     string_geojson.apply(numpy.vectorize(lambda cell: dataset.update(check(c)for c in cell)))
-    report = {}
 
     if None in dataset:
         dataset.remove(None)
-        report['null_values'] = ("Null values found", logging.WARNING, None)
-
-    report['found'] = ("Geographical data found from NI:", logging.INFO, ','.join(dataset))
-
-    return [report]
+        geojson_add_issue(
+            'lintol/boundary-checker:1',
+            logging.WARNING,
+            'null-values',
+            _("Null values found"),
+            None
+        )
 
 class BoundaryCheckerProcessor(DoorstepProcessor):
     def get_workflow(self, filename, metadata={}):

@@ -30,56 +30,42 @@ translations = {
     :line_breaks => "Line breaks were inconsistent or incorrectly specified"
 }
 
-report = []
 if validator.errors
-  report += [validator.errors.map { |error|
-    [
-      error.type,
-      [
-          translations[error.type],
-          20,
-          {
-            "error-count" => 1,
-            "valid" => false,
-            "tables" => [
-               {
-                  "format" => "csv",
-                  "errors" => [
-                     {
-                        "message" => "Row #{error.row}, #{error.column}: #{translations[error.type]}",
-                        "row" => validator.data[error.row],
-                        "row-number" => error.row,
-                        "code" => "missing-value",
-                        "column-number" => error.column
-                     }
-                  ],
-                  "row-count" => 5,
-                  "headers" => [
-                     "ID",
-                     "Name",
-                     "N",
-                     "Mean",
-                     "Standard Deviation"
-                  ],
-                  "source" => data_file,
-                  "time" => 0.016,
-                  "valid" => false,
-                  "scheme" => "file",
-                  "encoding" => "utf-8",
-                  "schema" => nil,
-                  "error-count" => 1
-               }
-            ],
-            "preset" => "table",
-            "warnings" => [],
-            "table-count" => 1,
-            "time" => 0.02
-         }
-
-      ]
-    ]
-  }.to_h]
+  errors = validator.errors.map { |error|
+    {
+       "processor" => "theodi/csvlint.rb:1",
+       "message" => "Row #{error.row}, #{error.column}: #{translations[error.type]}",
+       "row" => validator.data[error.row],
+       "row-number" => error.row,
+       "code" => "missing-value",
+       "column-number" => error.column
+    }
+  }
 end
+
+report = {
+  "error-count" => errors.length(),
+  "valid" => errors.empty?,
+  "row-count" => 5,
+  "headers" => validator.data[0],
+  "source" => data_file,
+  "time" => 0.016,
+  "tables" => [
+     {
+        "format" => "csv",
+        "errors" => errors,
+        "preset" => "table",
+        "warnings" => [],
+        "table-count" => 1,
+        "time" => 0.02,
+        "valid" => errors.empty?,
+        "scheme" => "file",
+        "encoding" => "utf-8",
+        "schema" => nil,
+        "error-count" => errors.length()
+     }
+  ]
+}
 
 File.open(output_file, "w") do |file|
   file.puts JSON.pretty_generate(report)
