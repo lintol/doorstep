@@ -6,6 +6,7 @@ from ltldoorstep import printer
 from ltldoorstep.engines import engines
 from ltldoorstep.file import make_file_manager
 import asyncio
+import logging
 
 @click.group()
 @click.option('--debug/--no-debug', default=False)
@@ -21,10 +22,14 @@ def cli(ctx, debug, bucket, output, output_file):
     else:
         raise RuntimeError(_("Unknown output format"))
 
+    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
+    logger = logging.getLogger(__name__)
+
     ctx.obj = {
         'DEBUG': debug,
         'printer': prnt,
-        'bucket': bucket
+        'bucket': bucket,
+        'logger': logger
     }
     gettext.install('ltldoorstep')
 
