@@ -31,7 +31,7 @@
                ]
             }
          ],
-         "format" : "csv",
+         "format" : "geojson",
          "row-count" : 5,
          "valid" : false,
          "headers" : [
