@@ -11,7 +11,7 @@ import numpy as np
 import pandas as p
 from dask.threaded import get
 import sys
-from ltldoorstep.processor import DoorstepProcessor
+from ltldoorstep.processor import DoorstepProcessor, tabular_add_issue
 
 pii_details = {
     'N': 'name',
@@ -33,15 +33,18 @@ def return_report(csv):
     analysis = piianalyzer.analysis()
 
     # Setting up report dict....
-    report = {}
     for key, details in analysis.items():
         if details:
             code = 'check_pii_detail:pii-found:{key}'.format(key=key)
-            report[code] = ('PII details found...', logging.INFO, details)
+            tabular_add_issue(
+                'lintol-pii-checker',
+                logging.INFO,
+                code,
+                _("Personally identifiable information found") + ': ' + str(details),
+                error_data={'personally-identifiable-information': details}
+            )
 
-    return [report]
 
- 
 class PiiProcessor(DoorstepProcessor):
     def get_workflow(self, filename, metadata={}):
         """Workflow builder

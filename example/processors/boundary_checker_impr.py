@@ -14,14 +14,12 @@ import pandas as p
 import geopandas as gp
 import csv
 import sys
-from ltldoorstep.processor import DoorstepProcessor
+from ltldoorstep.processor import DoorstepProcessor, geojson_add_issue
 
 DEFAULT_OUTLINE_GEOJSON = 'data/osni-ni-outline-lowres.geojson'
 
 
 def find_ni_data(first_file, ni_data=None):
-    report = {}
-
     if ni_data is None:
         ni_data = DEFAULT_OUTLINE_GEOJSON
 
@@ -44,22 +42,19 @@ def find_ni_data(first_file, ni_data=None):
         outside_points = data_to_compare[[not multipolygon.contains(p) for p in points]]
         inside_points_ct = len(points) - len(outside_points)
 
-        # If the points in the csv data match/are contained in the NI data json, do this...
-        if inside_points_ct:
-            # Reports back to the user that data is in NI
-            report['locations_found'] = \
-                ('Locations in Northern Ireland', logging.INFO, inside_points_ct)
-
         # If data in the first csv file are not contained in the second NI geojson file do this...
         if not outside_points.empty:
             # Report dict warns user that location is not in NI
-            report['locations_not_found'] = \
-                ('Locations not in Northern Ireland', logging.WARNING, list(outside_points.index))
+            for ix in outside_points.index:
+                geojson_add_issue('lintol/boundary-checker-improved:1', logging.WARNING, 'locations-not-found', _("This location is not within the given boundary"), item_index=ix)
     # If the csv file does not have any location data....
     else:
-        report['no_loc_data_found'] = ('No location data found! Please make sure that you have read the right file', logging.WARNING)
-
-    return [report]
+        geojson_add_issue(
+            'lintol/boundary-checker-improved:1',
+            logging.WARNING,
+            'no-location-data-found',
+            _("No location data found! Please make sure that you have read the right file")
+        )
 
 class BoundaryCheckerImprovedProcessor(DoorstepProcessor):
     def get_workflow(self, filename, metadata={}):

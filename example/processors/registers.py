@@ -111,8 +111,6 @@ def best_matching_series(series, columns):
     return None
 
 def gov_countries_register_checker(data):
-    report = {}
-
     # making test_data into data loaded from json
     register_filename = os.path.join('data', DEFAULT_REGISTER_LOCATION)
 
@@ -129,20 +127,22 @@ def gov_countries_register_checker(data):
     issues = {k: issue for  k, issue in issues.items() if issue}
 
     mismatching_columns = {k: issue[1] for k, issue in issues.items() if issue[1]}
-    report['country-mismatch'] = (
-        'Non-matching entries for states column data',
+    tabular_add_issue(
+        'lintol/gov-uk-register-countries:1',
         logging.WARNING,
-        mismatching_columns
+        'country-mismatch',
+        _("Non-matching entries for states column data") + ': ' + str(mismatching_columns),
+        error_data={'mismatching-columns': mismatching_columns}
     )
 
     checked_columns = {k: 'country-register-{col}'.format(col=issue[0]) for k, issue in issues.items()}
-    report['country-checked'] = (
-        'Columns that were checked for state attributes (best-fit)',
+    tabular_add_issue(
+        'lintol/gov-uk-register-countries:1',
         logging.INFO,
-        checked_columns
+        'country-mismatch',
+        _("Columns that were checked for state attributes (best-fit)") + ': ' + str(checked_columns),
+        error_data={'mismatching-columns': mismatching_columns}
     )
-
-    return [report]
 
 """This is the workflow builder.
 

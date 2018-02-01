@@ -27,15 +27,6 @@ def find_ni_data(geojson, ni_json=None):
     is_data_in_ni = json.loads(data_str)
     check = point_in_multipolygon(is_data_in_ni, ni_data_str)
     string_geojson.apply(numpy.vectorize(lambda cell: dataset.update(check(c)for c in cell)))
-    report = {}
-
-    if None in dataset:
-        dataset.remove(None)
-        report['null_values'] = ("Null values found", logging.WARNING, None)
-
-    report['found'] = ("Geographical data found from NI:", logging.INFO, ','.join(dataset))
-
-    return [report]
 
 def get_workflow(filename):
     workflow = {

@@ -6,11 +6,15 @@ require 'json'
 output_file = ENV['LINTOL_OUTPUT_FILE']
 metadata = ENV['LINTOL_METADATA']
 input_data = ENV['LINTOL_INPUT_DATA']
+data_file = ENV['LINTOL_DATA_FILE']
 
-data_files = Dir.entries(input_data)
-data_files.reject { | entry | File.directory?(entry) }
+if !data_file
+  data_files = Dir.entries(input_data)
+  data_files.reject { | entry | File.directory?(entry) }
+  data_file = data_files[0]
+end
 
-input_file = File.new(File.join(input_data, data_files[0]))
+input_file = File.new(File.join(input_data, data_file))
 
 validator = Csvlint::Validator.new(input_file)
 
@@ -26,21 +30,42 @@ translations = {
     :line_breaks => "Line breaks were inconsistent or incorrectly specified"
 }
 
-report = [
-  validator.errors.map { |error|
-    [
-      error.type,
-      [
-          translations[error.type],
-          20,
-          {
-            :row => error.row,
-            :column => error.column
-          }
-      ]
-    ]
-  }.to_h
-]
+if validator.errors
+  errors = validator.errors.map { |error|
+    {
+       "processor" => "theodi/csvlint.rb:1",
+       "message" => "Row #{error.row}, #{error.column}: #{translations[error.type]}",
+       "row" => validator.data[error.row],
+       "row-number" => error.row,
+       "code" => "missing-value",
+       "column-number" => error.column
+    }
+  }
+end
+
+report = {
+  "error-count" => errors.length(),
+  "valid" => errors.empty?,
+  "row-count" => 5,
+  "headers" => validator.data[0],
+  "source" => data_file,
+  "time" => 0.016,
+  "tables" => [
+     {
+        "format" => "csv",
+        "errors" => errors,
+        "preset" => "table",
+        "warnings" => [],
+        "table-count" => 1,
+        "time" => 0.02,
+        "valid" => errors.empty?,
+        "scheme" => "file",
+        "encoding" => "utf-8",
+        "schema" => nil,
+        "error-count" => errors.length()
+     }
+  ]
+}
 
 File.open(output_file, "w") do |file|
   file.puts JSON.pretty_generate(report)
