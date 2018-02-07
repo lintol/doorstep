@@ -55,6 +55,7 @@
       "    echo \"Docker image provided is not whitelisted\"",
       "    exit 3",
       "  fi",
+      "  docker pull $DOCKER_IMAGE",
       "  if [ -e \"/pfs/processors/$processor/CACHECLEAR\" ]",
       "  then",
       "    docker pull $DOCKER_IMAGE",

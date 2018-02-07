@@ -39,18 +39,18 @@ class TermColorPrinter(Printer):
         }
 
         general_output = []
-        results = {}
-        for result_set in result_sets:
+        results = []
+        for result_set in result_sets['tables'][0]['warnings']:
             try:
-                results.update(result_set)
+                results.append([result_set['item'], logging.ERROR, result_set['code'], result_set['message']])
             except ValueError:
                 self.add_section(result_set)
 
-        for comment, detail in results.items():
+        for detail in results:
             levels[detail[1]].append([
                 detail[0],
                 str(detail[2]) if detail[2] else '',
-                comment
+                detail[3]
             ])
 
         output_sections = []

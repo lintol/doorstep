@@ -76,6 +76,7 @@ class PachydermEngine:
         """Mark a module_name as a processor."""
 
         self.logger.debug("Adding processor")
+        self.logger.debug(metadata)
 
         filename = '/processor/%s.py' % module_name
 
@@ -97,6 +98,7 @@ class PachydermEngine:
 
         metadata_json = json.dumps(metadata).encode('utf-8')
 
+        print(metadata_json)
         docker = '{image}:{revision}'.format(image=docker_image, revision=docker_revision)
         files = {
             filename: content,
@@ -244,7 +246,7 @@ class PachydermEngine:
     async def get_output(self, session):
         output = session['pipeline'].pull_output('/raw/processor.json')
 
-        return ['\n'.join([line.decode('utf-8') for line in output])]
+        return '\n'.join([line.decode('utf-8') for line in output])
 
     def wait_for_commit(self, session):
         for commit in session['pipeline'].subscribe_output_commit():

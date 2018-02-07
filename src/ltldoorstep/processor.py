@@ -41,16 +41,27 @@ def tabular_add_issue(processor, log_level, code, message, row_number=None, colu
         'row': row if row else []
     })
 
-def geojson_add_issue(processor, log_level, code, message, item_index=None, item=None):
+def geojson_add_issue(processor, log_level, code, message, item_index=None, item=None, item_type=None, item_properties=None):
     global report
 
-    report[log_level].append({
+    entry = {
         'processor': processor,
         'code': code,
         'message': message,
-        'item-index': item_index,
-        'item': item if item else []
-    })
+        'item': None
+    }
+    if item:
+        entry['item'] = {
+            'entity': {
+                'type': item_type,
+                'location': {
+                    'index': item_index
+                },
+                'definition': item
+            },
+            'properties': item_properties
+        }
+    report[log_level].append(entry)
 
 def compile_report(filename, metadata):
     global report, properties

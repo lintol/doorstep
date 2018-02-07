@@ -6,6 +6,7 @@ For now, please make sure that the second geojson in the argument is a boundary 
 
 """
 
+import shapely
 from geojson_utils import point_in_multipolygon
 import logging
 import json
@@ -14,17 +15,28 @@ import pandas as p
 import geopandas as gp
 import csv
 import sys
-from ltldoorstep.processor import DoorstepProcessor, geojson_add_issue
+from ltldoorstep.processor import DoorstepProcessor, geojson_add_issue, compile_report, set_properties
 
-DEFAULT_OUTLINE_GEOJSON = 'data/osni-ni-outline-lowres.geojson'
+OUTLINES = {
+    'GB-NIR': 'example/data/osni-ni-outline-lowres.geojson'
+}
 
 
-def find_ni_data(first_file, ni_data=None):
-    if ni_data is None:
-        ni_data = DEFAULT_OUTLINE_GEOJSON
+def find_ni_data(first_file, metadata=None):
+    code = 'GB-NIR'
+    if metadata and 'definitions' in metadata and metadata['definitions']:
+        metadata = metadata['definitions'].values()[0]
+        if metadata and \
+                'configuration' in metadata and \
+                'boundary' in metadata['configuration'] and \
+                metadata['configuration']['boundary'] in OUTLINES:
+            code = metadata['configuration']['boundary']
+    ni_data = OUTLINES[code]
 
-    data_to_compare = gp.read_file(first_file)
+    with open(first_file) as data_file:
+        data_to_compare = gp.GeoDataFrame.from_features(json.load(data_file)['features'])
 
+    set_properties(preset='geojson', headers=list(data_to_compare.columns))
     # If csv file has these attributes then...
     if 'geometry' in data_to_compare:
 
@@ -45,8 +57,20 @@ def find_ni_data(first_file, ni_data=None):
         # If data in the first csv file are not contained in the second NI geojson file do this...
         if not outside_points.empty:
             # Report dict warns user that location is not in NI
-            for ix in outside_points.index:
-                geojson_add_issue('lintol/boundary-checker-improved:1', logging.WARNING, 'locations-not-found', _("This location is not within the given boundary"), item_index=ix)
+            for ix, point in outside_points.iterrows():
+                geopoint = shapely.geometry.mapping(point['geometry'])
+                props = dict(point)
+                del props['geometry']
+                geojson_add_issue(
+                    'lintol/boundary-checker-improved:1',
+                    logging.ERROR,
+                    'locations-not-found',
+                    _("This location is not within the given boundary"),
+                    item_index=ix,
+                    item=geopoint,
+                    item_type=geopoint['type'],
+                    item_properties=props
+                )
     # If the csv file does not have any location data....
     else:
         geojson_add_issue(
@@ -59,7 +83,7 @@ def find_ni_data(first_file, ni_data=None):
 class BoundaryCheckerImprovedProcessor(DoorstepProcessor):
     def get_workflow(self, filename, metadata={}):
         workflow = {
-            'output': (find_ni_data, filename)
+            'output': (find_ni_data, filename, metadata)
         }
         return workflow
 
@@ -69,4 +93,4 @@ if __name__ == "__main__":
     argv = sys.argv
     processor = BoundaryCheckerImprovedProcessor()
     workflow = processor.get_workflow(argv[1])
-    print(get(workflow, 'output'))
+    print(compile_report(filename, metadata))

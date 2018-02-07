@@ -12,6 +12,7 @@ import pandas as p
 from dask.threaded import get
 import sys
 from ltldoorstep.processor import DoorstepProcessor, tabular_add_issue
+from nltk.tag.stanford import StanfordNERTagger
 
 pii_details = {
     'N': 'name',
@@ -21,6 +22,10 @@ pii_details = {
     'E': 'email_address',
     'O': 'organization'
 }
+
+def check_nltk(csv):
+    ner = StanfordNERTagger('classifiers/english.conll.4class.distsim.crf.ser.gz')
+    ner.
 
 def return_report(csv):
     # Feeding in csv file to PIIAnalyzer...
