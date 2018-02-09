@@ -3,6 +3,13 @@ import logging
 import tabulate
 import json
 
+
+LEVEL_MAPPING = {
+    logging.ERROR: 'errors',
+    logging.WARNING: 'warnings',
+    logging.INFO: 'info'
+}
+
 class Printer:
     def __init__(self, debug=False, target=None):
         self._output_sections = []
@@ -40,18 +47,19 @@ class TermColorPrinter(Printer):
 
         general_output = []
         results = []
-        for result_set in result_sets['tables'][0]['warnings']:
-            try:
-                results.append([result_set['item'], logging.ERROR, result_set['code'], result_set['message']])
-            except ValueError:
-                self.add_section(result_set)
 
-        for detail in results:
-            levels[detail[1]].append([
-                detail[0],
-                str(detail[2]) if detail[2] else '',
-                detail[3]
-            ])
+        for log_level, log_key in LEVEL_MAPPING.items():
+            if log_key in result_sets['tables'][0]:
+                for result_set in result_sets['tables'][0][log_key]:
+                    item_str = str(result_set['item'])
+                    if len(item_str) > 40:
+                        item_str = item_str[:37] + '...'
+                    levels[log_level].append([
+                        result_set['item']['entity']['location'],
+                        result_set['code'],
+                        result_set['message'],
+                        item_str
+                    ])
 
         output_sections = []
         if levels[logging.ERROR]:
