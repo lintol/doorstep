@@ -73,7 +73,7 @@ def compile_report(filename, metadata):
         if frmt and frmt[0] == '.':
             frmt = frmt[1:]
 
-    valid = bool(report[logging.ERROR])
+    valid = not bool(report[logging.ERROR])
 
     return {
         'error-count': sum([len(r) for r in report.values()]),
