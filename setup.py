@@ -51,7 +51,7 @@ setup(
         'dask',
         'distributed',
         'tabulate',
-        'Flask',
+        'flask',
         'flask_restful',
         'unicodeblock',
         'goodtables',
