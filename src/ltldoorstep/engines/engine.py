@@ -1,3 +1,8 @@
 class Engine:
-    def config_help(self):
+    @staticmethod
+    def description():
+        return '(not provided)'
+
+    @staticmethod
+    def config_help():
         return None

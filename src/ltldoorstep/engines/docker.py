@@ -30,7 +30,12 @@ class DockerEngine(Engine):
             if 'bind' in config and config['bind']:
                 self.bind_ltldoorstep_module = True
 
-    def config_help(self):
+    @staticmethod
+    def description():
+        return _("Run processor(s) locally via Docker")
+
+    @staticmethod
+    def config_help():
         return {
             'bind': _("Useful for debugging ltldoorstep itself,\n" +
                 "bind-mounts the ltldoorstep module into the executing container")
