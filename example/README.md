@@ -37,6 +37,10 @@ This dataset is the gov.uk [Country Register](https://country.register.gov.uk/),
 
 This dataset is the (NI) Department for Communities list of [Protected Wrecks](https://www.opendatani.gov.uk/dataset/c5fceed7-b07a-4bc4-a0a0-8c45b9033083/resource/2d8da801-39f7-48b7-81ad-8db58d107962), available under the [UK Open Government License](http://reference.data.gov.uk/id/open-government-licence).
 
+### settlement-boundaries/*.geojson
+
+These datasets are derived from the (NI) Department for Infrastructure [maps of settlement limits](https://www.opendatani.gov.uk/dataset/settlement-boundary-data/resource/1f8450d1-b92d-4914-8cc9-15d9ac64d14c), taken from Area Plans, available under the [UK Open Governement License](http://reference.data.gov.uk/id/open-government-licence).
+
 ## Tests
 
 To test processors, run:
