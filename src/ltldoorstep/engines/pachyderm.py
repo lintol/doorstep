@@ -15,6 +15,7 @@ from .pachyderm_proxy.repo import make_repo
 from .pachyderm_proxy.pipeline import make_pipeline
 from .pachyderm_proxy.job_error import JobFailedException
 from .pachyderm_proxy.pypachy_wrapper import PfsClientWrapper
+from .engine import Engine
 
 ALLOWED_IMAGES = [
     ('lintol/doorstep', 'latest'),
@@ -22,7 +23,7 @@ ALLOWED_IMAGES = [
 ]
 
 
-class PachydermEngine:
+class PachydermEngine(Engine):
     """Allow execution of workflows on a Pachyderm cluster."""
 
     _retry_count = 120

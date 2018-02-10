@@ -46,6 +46,7 @@ setup(
     },
     install_requires=[
         'Click',
+        'docker',
         'shapely',
         'geojson_utils',
         'geopandas',

@@ -47,15 +47,22 @@ def status(ctx):
 @cli.command()
 @click.argument('filename', 'data file to process')
 @click.argument('workflow', 'Python workflow module')
-@click.option('-e', '--engine', type=click.Choice(engines.keys()), required=True)
+@click.option('-e', '--engine', required=True)
 @click.option('-m', '--metadata', default=None)
 @click.pass_context
 def process(ctx, filename, workflow, engine, metadata):
     printer = ctx.obj['printer']
     bucket = ctx.obj['bucket']
 
+    if ':' in engine:
+        engine, engine_options = engine.split(':')
+        sp = lambda x: (x.split('=') if '=' in x else (x, True))
+        engine_options = {k: v for k, v in map(sp, engine_options.split(','))}
+    else:
+        engine_options = {}
+
     click.echo(_("Engine: %s" % engine))
-    engine = engines[engine]()
+    engine = engines[engine](config=engine_options)
 
     if metadata is None:
         metadata = {}
