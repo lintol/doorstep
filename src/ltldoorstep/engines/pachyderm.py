@@ -97,17 +97,21 @@ class PachydermEngine(Engine):
         if (docker_image, docker_revision) not in ALLOWED_IMAGES:
             raise RuntimeError(_("Image supplied is not whitelisted"))
 
-        metadata_json = json.dumps(metadata).encode('utf-8')
+        for uid, processor in metadata['definitions'].items():
+            docker = '{image}:{revision}'.format(image=docker_image, revision=docker_revision)
+            configuration = {
+                'definition': processor,
+                'settings': metadata['settings']
+            }
+            metadata_json = json.dumps(configuration).encode('utf-8')
 
-        print(metadata_json)
-        docker = '{image}:{revision}'.format(image=docker_image, revision=docker_revision)
-        files = {
-            filename: content,
-            '/processor/metadata.json': metadata_json,
-            '/processor/LANG': lang.encode('utf-8'),
-            '/processor/IMAGE': docker.encode('utf-8')
-        }
-        self._add_files('processors', files, session)
+            files = {
+                filename: content,
+                '/processor/metadata.json': metadata_json,
+                '/processor/LANG': lang.encode('utf-8'),
+                '/processor/IMAGE': docker.encode('utf-8')
+            }
+            self._add_files('processors', files, session)
 
         self.logger.debug("Added processor")
 
