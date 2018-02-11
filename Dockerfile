@@ -10,7 +10,7 @@ RUN adduser doorstep
 
 WORKDIR /doorstep
 
-RUN python3 setup.py install
+RUN python3 setup.py develop
 
 USER doorstep
 

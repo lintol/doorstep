@@ -12,3 +12,5 @@ goodtables
 ckanapi
 geojson_utils
 geopandas
+requests
+shapely

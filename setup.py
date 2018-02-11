@@ -63,7 +63,8 @@ setup(
         'pandas',
         'boto3',
         'autobahn',
-        'ckanapi'
+        'ckanapi',
+        'requests'
     ],
     include_package_data=True,
     tests_require=[
