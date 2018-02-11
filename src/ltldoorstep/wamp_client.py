@@ -1,4 +1,5 @@
 import os
+import uuid
 import json
 import json
 from autobahn.asyncio.wamp import ApplicationRunner, ApplicationSession
@@ -29,14 +30,20 @@ class WampClientComponent(ApplicationSession):
         workflow = os.path.basename(self._workflow)
 
         if self._metadata is None:
-            metadata = {}
+            metadata = {
+                'definitions': {
+                    str(uuid.uuid4()): {
+                        'module': workflow
+                    }
+                }
+            }
         else:
             with open(self._metadata, 'r') as file_obj:
                 metadata = json.load(file_obj)
 
         self._server, self._session = await self.call('com.ltldoorstep.engage')
 
-        await self.call_server('processor.post', workflow, module, metadata)
+        await self.call_server('processor.post', {workflow: module}, metadata)
         await self.call_server('data.post', filename, content)
 
         result = json.loads(await self.call_server('report.get'))

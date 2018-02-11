@@ -73,44 +73,54 @@ class PachydermEngine(Engine):
             'pfs': pfs
         }
 
-    def add_processor(self, module_name, content, metadata, session):
+    def add_processor(self, modules, metadata, session):
         """Mark a module_name as a processor."""
 
         self.logger.debug("Adding processor")
         self.logger.debug(metadata)
 
-        filename = '/processor/%s' % module_name
-
-        docker_image = 'lintol/doorstep'
-        docker_revision = 'latest'
         lang = 'C.UTF-8' # TODO: more sensible default
-
-        if 'docker' in metadata:
-            if 'image' in metadata['docker']:
-                docker_image = metadata['docker']['image']
-                docker_revision = metadata['docker']['revision']
 
         if 'lang' in metadata:
             # TODO: check lang is valid
             lang = metadata['lang']
 
-        if (docker_image, docker_revision) not in ALLOWED_IMAGES:
-            raise RuntimeError(_("Image supplied is not whitelisted"))
-
         for uid, processor in metadata['definitions'].items():
+            docker_image = 'lintol/doorstep'
+            docker_revision = 'latest'
+
+            if (docker_image, docker_revision) not in ALLOWED_IMAGES:
+                raise RuntimeError(_("Docker image supplied is not whitelisted"))
+
+            if 'docker' in processor:
+                if 'image' in processor['docker']:
+                    docker_image = processor['docker']['image']
+                    docker_revision = processor['docker']['revision']
+
             docker = '{image}:{revision}'.format(image=docker_image, revision=docker_revision)
             configuration = {
                 'definition': processor,
                 'settings': metadata['settings']
             }
+
             metadata_json = json.dumps(configuration).encode('utf-8')
 
             files = {
-                filename: content,
-                '/processor/metadata.json': metadata_json,
-                '/processor/LANG': lang.encode('utf-8'),
-                '/processor/IMAGE': docker.encode('utf-8')
+                'metadata.json': metadata_json,
+                'LANG': lang.encode('utf-8'),
+                'IMAGE': docker.encode('utf-8')
             }
+
+            if 'module' in processor:
+                filename = processor['module']
+                if processor['module'] in modules:
+                    content = modules[processor['module']]
+                else:
+                    raise RuntimeError(_("Module content missing from processor(s)"))
+                files[filename] = content
+
+            files = {os.path.join('/', uid, k): v for k, v in files.items()}
+
             self._add_files('processors', files, session)
 
         self.logger.debug("Added processor")

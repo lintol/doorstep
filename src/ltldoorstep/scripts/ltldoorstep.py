@@ -15,6 +15,7 @@ def get_engine(engine):
         engine_options = {k: v for k, v in map(sp, engine_options.split(','))}
     else:
         engine_options = {}
+
     return engine, engine_options
 
 @click.group()
