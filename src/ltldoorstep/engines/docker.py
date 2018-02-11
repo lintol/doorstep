@@ -41,13 +41,17 @@ class DockerEngine(Engine):
                 "bind-mounts the ltldoorstep module into the executing container")
         }
 
-    def add_data(self, filename, content, metadata, session):
-        session['data-filename'] = filename
-        session['data-content'] = content
+    def add_data(self, filename, content, session):
+        data = {
+            'filename': filename,
+            'content': content
+        }
+        asyncio.ensure_future(session['queue'].put(data))
 
-    def add_processor(self, filename, content, session):
-        if 'processors' in session['processors']:
+    def add_processor(self, filename, content, metadata, session):
+        if 'processors' not in session:
             session['processors'] = []
+
         session['processors'].append({
             'name' : str(uuid.uuid4()),
             'filename': filename,
@@ -73,26 +77,50 @@ class DockerEngine(Engine):
             'content': workflow_content
         }]
 
-        return await self._run(filename, metadata, data_content, processors, workflow_content, self.bind_ltldoorstep_module)
+        return await self._run(filename, data_content, processors, self.bind_ltldoorstep_module)
 
     async def monitor_pipeline(self, session):
-        result = await self._run(session['data-filename'], session['metadata'], session['data-content'], session['processors'], self.bind_ltldoorstep_module)
+        loop = asyncio.get_event_loop()
+
+        session['completion'] = asyncio.Lock()
+
+        async def run_when_ready():
+            session['completion'].acquire()
+            data = await session['queue'].get()
+            result = await self._run(data['filename'], data['content'], session['processors'], self.bind_ltldoorstep_module)
+            session['result'] = result
+            session['completion'].release()
+
+        asyncio.ensure_future(run_when_ready())
+
+        return (False, session['completion'].acquire())
+
+    async def get_output(self, session):
+        if 'result' in session:
+            result = session['result']
+        else:
+            result = None
 
         return result
 
     @staticmethod
-    async def _run(data_filename, metadata, data_content, processors, workflow_content, bind_ltldoorstep_module):
+    async def _run(data_filename, data_content, processors, bind_ltldoorstep_module):
         """Start the execution process over the cluster for a given client."""
 
         result = None
 
-        metadata = metadata
         filename = data_filename
+        if type(data_content) == bytes:
+            data_content = data_content.decode('utf-8')
+
         content = {
             filename: data_content
         }
         for processor in processors:
-            content[processor['filename']] = workflow_content
+            pc = processor['content']
+            if type(pc) == bytes:
+                pc = pc.decode('utf-8')
+            content[processor['filename']] = pc
 
         with tempfile.TemporaryDirectory('-doorstep-docker-engine-storage') as mounted_dir, make_file_manager(content=content) as file_manager:
             data_file = file_manager.get(data_filename)
@@ -109,7 +137,7 @@ class DockerEngine(Engine):
 
                 with open(os.path.join(processor_root, 'metadata.json'), 'w') as metadata_file:
                     json.dump(metadata, metadata_file)
-                print(file_manager.get(processor['filename']), os.path.join(processor_root, processor['filename']))
+
                 shutil.copy(file_manager.get(processor['filename']), os.path.join(processor_root, processor['filename']))
                 data_basename = os.path.basename(data_filename)
                 shutil.copy(data_file, os.path.join(data_root, data_basename))
@@ -148,7 +176,6 @@ class DockerEngine(Engine):
                         '..',
                         '..'
                     )
-                    print(ltldoorstep_root_dir)
                     mounts.append(docker.types.Mount(
                         '/doorstep',
                         ltldoorstep_root_dir,
@@ -174,13 +201,10 @@ class DockerEngine(Engine):
         """
 
         name = 'doorstep-%s' % str(uuid.uuid4())
-        data_name = '%s-data' % name
-        processors_name = '%s-processors' % name
 
         session = {
             'name': name,
-            'data': data_name,
-            'processors': processors_name
+            'queue': asyncio.Queue()
         }
 
         yield session

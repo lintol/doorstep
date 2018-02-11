@@ -8,6 +8,15 @@ from ltldoorstep.file import make_file_manager
 import asyncio
 import logging
 
+def get_engine(engine):
+    if ':' in engine:
+        engine, engine_options = engine.split(':')
+        sp = lambda x: (x.split('=') if '=' in x else (x, True))
+        engine_options = {k: v for k, v in map(sp, engine_options.split(','))}
+    else:
+        engine_options = {}
+    return engine, engine_options
+
 @click.group()
 @click.option('--debug/--no-debug', default=False)
 @click.option('-b', '--bucket', default=None)
@@ -72,13 +81,7 @@ def process(ctx, filename, workflow, engine, metadata):
     printer = ctx.obj['printer']
     bucket = ctx.obj['bucket']
 
-    if ':' in engine:
-        engine, engine_options = engine.split(':')
-        sp = lambda x: (x.split('=') if '=' in x else (x, True))
-        engine_options = {k: v for k, v in map(sp, engine_options.split(','))}
-    else:
-        engine_options = {}
-
+    engine, engine_options = get_engine(engine)
     click.echo(_("Engine: %s" % engine))
     engine = engines[engine](config=engine_options)
 
@@ -95,15 +98,15 @@ def process(ctx, filename, workflow, engine, metadata):
     printer.print_output()
 
 @cli.command()
-@click.option('--engine', type=click.Choice(engines.keys()), required=True)
+@click.option('--engine', required=True)
 @click.option('--protocol', type=click.Choice(['http', 'wamp']), required=True)
 @click.pass_context
 def serve(ctx, engine, protocol):
     printer = ctx.obj['printer']
 
+    engine, engine_options = get_engine(engine)
     click.echo(_("Engine: %s" % engine))
-
-    engine = engines[engine]()
+    engine = engines[engine](config=engine_options)
 
     if protocol == 'http':
         from ltldoorstep.flask_server import launch_flask
@@ -117,14 +120,14 @@ def serve(ctx, engine, protocol):
 @cli.command()
 @click.argument('workflow', 'Python workflow module')
 @click.option('--url', required=True)
-@click.option('--engine', type=click.Choice(engines.keys()), required=True)
+@click.option('--engine', required=True)
 @click.pass_context
 def crawl(ctx, workflow, url, engine):
     printer = ctx.obj['printer']
 
+    engine, engine_options = get_engine(engine)
     click.echo(_("Engine: %s" % engine))
-
-    engine = engines[engine]()
+    engine = engines[engine](config=engine_options)
 
     metadata = {}
 

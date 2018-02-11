@@ -79,7 +79,7 @@ class PachydermEngine(Engine):
         self.logger.debug("Adding processor")
         self.logger.debug(metadata)
 
-        filename = '/processor/%s.py' % module_name
+        filename = '/processor/%s' % module_name
 
         docker_image = 'lintol/doorstep'
         docker_revision = 'latest'
@@ -172,7 +172,7 @@ class PachydermEngine(Engine):
 
         with self.make_session() as session:
             with open(workflow_module, 'r') as file_obj:
-                self.add_processor('processor', file_obj.read().encode('utf-8'), metadata, session)
+                self.add_processor('processor.py', file_obj.read().encode('utf-8'), metadata, session)
 
             if bucket:
                 content = filename
