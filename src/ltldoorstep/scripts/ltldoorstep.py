@@ -1,28 +1,35 @@
 import click
+import json
 import requests
 import gettext
 from ltldoorstep import printer
 from ltldoorstep.engines import engines
 from ltldoorstep.file import make_file_manager
 import asyncio
+import logging
 
 @click.group()
 @click.option('--debug/--no-debug', default=False)
 @click.option('-b', '--bucket', default=None)
-@click.option('--output', type=click.Choice(['ansi', 'json']), default='ansi')
+@click.option('-o', '--output', type=click.Choice(['ansi', 'json']), default='ansi')
+@click.option('--output-file', default=None)
 @click.pass_context
-def cli(ctx, debug, bucket, output):
+def cli(ctx, debug, bucket, output, output_file):
     if output == 'json':
-        prnt = printer.JsonPrinter(debug)
+        prnt = printer.JsonPrinter(debug, target=output_file)
     elif output == 'ansi':
-        prnt = printer.TermColorPrinter(debug)
+        prnt = printer.TermColorPrinter(debug, target=output_file)
     else:
         raise RuntimeError(_("Unknown output format"))
+
+    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
+    logger = logging.getLogger(__name__)
 
     ctx.obj = {
         'DEBUG': debug,
         'printer': prnt,
-        'bucket': bucket
+        'bucket': bucket,
+        'logger': logger
     }
     gettext.install('ltldoorstep')
 
@@ -40,20 +47,27 @@ def status(ctx):
 @cli.command()
 @click.argument('filename', 'data file to process')
 @click.argument('workflow', 'Python workflow module')
-@click.option('--engine', type=click.Choice(engines.keys()), required=True)
+@click.option('-e', '--engine', type=click.Choice(engines.keys()), required=True)
+@click.option('-m', '--metadata', default=None)
 @click.pass_context
-def process(ctx, filename, workflow, engine):
+def process(ctx, filename, workflow, engine, metadata):
     printer = ctx.obj['printer']
     bucket = ctx.obj['bucket']
 
     click.echo(_("Engine: %s" % engine))
     engine = engines[engine]()
 
-    loop = asyncio.get_event_loop()
-    result = loop.run_until_complete(engine.run(filename, workflow, bucket=bucket))
-    printer.print_report(result)
+    if metadata is None:
+        metadata = {}
+    else:
+        with open(metadata, 'r') as metadata_file:
+            metadata = json.load(metadata_file)
 
-    print(printer.get_output())
+    loop = asyncio.get_event_loop()
+    result = loop.run_until_complete(engine.run(filename, workflow, metadata, bucket=bucket))
+    printer.build_report(result)
+
+    printer.print_output()
 
 @cli.command()
 @click.option('--engine', type=click.Choice(engines.keys()), required=True)
@@ -87,6 +101,8 @@ def crawl(ctx, workflow, url, engine):
 
     engine = engines[engine]()
 
+    metadata = {}
+
     from ckanapi import RemoteCKAN
     client = RemoteCKAN(url, user_agent='lintol-doorstep-crawl/1.0 (+http://lintol.io)')
     resources = client.action.resource_search(query='format:csv')
@@ -96,6 +112,6 @@ def crawl(ctx, workflow, url, engine):
             with make_file_manager(content={'data.csv': r.text}) as file_manager:
                 filename = file_manager.get('data.csv')
                 loop = asyncio.get_event_loop()
-                result = loop.run_until_complete(engine.run(filename, workflow))
-                printer.print_report(result)
-    print(printer.get_output())
+                result = loop.run_until_complete(engine.run(filename, workflow, metadata))
+                printer.build_report(result)
+    printer.print_output()

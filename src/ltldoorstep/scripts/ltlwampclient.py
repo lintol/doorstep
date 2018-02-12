@@ -29,13 +29,14 @@ def status(ctx):
         click.echo(_('Debug is off'))
 
 @cli.command()
+@click.option('-m', '--metadata', default=None)
 @click.argument('filename', 'data file to process')
 @click.argument('workflow', 'Python workflow module')
 @click.pass_context
-def process(ctx, filename, workflow):
+def process(ctx, filename, workflow, metadata):
     printer = ctx.obj['printer']
     bucket = ctx.obj['bucket']
 
-    launch_wamp(filename, workflow, printer)
+    launch_wamp(filename, workflow, printer, metadata)
 
-    print(printer.get_output())
+    print(printer.print_output())

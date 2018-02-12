@@ -3,18 +3,42 @@ import logging
 import tabulate
 import json
 
-class TermColorPrinter:
-    def __init__(self, debug=False):
+
+LEVEL_MAPPING = {
+    logging.ERROR: 'errors',
+    logging.WARNING: 'warnings',
+    logging.INFO: 'info'
+}
+
+class Printer:
+    def __init__(self, debug=False, target=None):
         self._output_sections = []
         self._debug = debug
+        self._target = target
 
     def get_debug(self):
         return self._debug
 
+    def build_report():
+        raise NotImplementedError("No report builder implemented for this printer")
+
+    def get_output():
+        raise NotImplementedError("No outputter implemented for this printer")
+
+    def print_output(self):
+        output = self.get_output()
+
+        if self._target is None:
+            print(output)
+        else:
+            with open(self._target, 'w') as target_file:
+                target_file.write(output)
+
+class TermColorPrinter(Printer):
     def get_output(self):
         return '\n\n'.join(self._output_sections)
 
-    def print_report(self, result_sets):
+    def build_report(self, result_sets):
         levels = {
             logging.INFO: [],
             logging.WARNING: [],
@@ -22,19 +46,20 @@ class TermColorPrinter:
         }
 
         general_output = []
-        results = {}
-        for result_set in result_sets:
-            try:
-                results.update(result_set)
-            except ValueError:
-                self.add_section(result_set)
+        results = []
 
-        for comment, detail in results.items():
-            levels[detail[1]].append([
-                detail[0],
-                str(detail[2]) if detail[2] else '',
-                comment
-            ])
+        for log_level, log_key in LEVEL_MAPPING.items():
+            if log_key in result_sets['tables'][0]:
+                for result_set in result_sets['tables'][0][log_key]:
+                    item_str = str(result_set['item'])
+                    if len(item_str) > 40:
+                        item_str = item_str[:37] + '...'
+                    levels[log_level].append([
+                        result_set['item']['entity']['location'],
+                        result_set['code'],
+                        result_set['message'],
+                        item_str
+                    ])
 
         output_sections = []
         if levels[logging.ERROR]:
@@ -61,17 +86,9 @@ class TermColorPrinter:
         self._output_sections.append(output)
 
 
-class JsonPrinter:
-    def __init__(self, debug=False):
-        self._result_sets = []
-        self._debug = debug
-        self._output = ''
-
-    def get_debug(self):
-        return self._debug
-
+class JsonPrinter(Printer):
     def get_output(self):
         return self._output
 
-    def print_report(self, result_sets):
+    def build_report(self, result_sets):
         self._output = json.dumps(result_sets)

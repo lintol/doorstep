@@ -1,15 +1,20 @@
 """Common routines for dask engine."""
 
+import os
 from dask import threaded
+from ltldoorstep.processor import compile_report
 
-def execute(filename, module_name):
+def execute(filename, module_name, metadata):
     """Import and run a workflow on a data file."""
     mod = __import__(module_name)
-    return run(filename, mod)
+    return run(filename, mod, metadata)
 
-def run(filename, mod):
+def run(filename, mod, metadata):
     """Real runner for a given ltldoorstep processor module and datafile."""
 
-    workflow = mod.get_workflow(filename)
+    processor = mod.processor()
+    workflow = processor.get_workflow(filename, metadata)
 
-    return threaded.get(workflow, 'output')
+    threaded.get(workflow, 'output')
+
+    return compile_report(filename, metadata)
