@@ -21,7 +21,9 @@ class Report(object):
         if log_level not in self.issues:
             raise RuntimeError(_('Log-level must be one of logging.INFO, logging.WARNING or logging.ERROR'))
 
-        self.issues[log_level].append({
+        issue_list = self.issues[log_level]
+
+        issue_list.append({
             'processor': processor,
             'code': code,
             'message': message,
