@@ -27,31 +27,24 @@ def set_properties(**kwargs):
             properties[arg] = kwargs[arg]
 
 def tabular_add_issue(processor, log_level, code, message, row_number=None, column_number=None, row=None):
-    global report
+    item = {
+        'entity': {
+            'type': item_type,
+            'location': {
+                'row': row_number,
+                'column': column_number,
+            },
+            'definition': item
+        },
+        'properties': item_properties
+    }
 
-    if log_level not in report:
-        raise RuntimeError(_('Log-level must be one of logging.INFO, logging.WARNING or logging.ERROR'))
-
-    report[log_level].append({
-        'processor': processor,
-        'code': code,
-        'message': message,
-        'row-number': row_number,
-        'column-number': column_number,
-        'row': row if row else []
-    })
+    add_issue(processor, log_level, code, message, item)
 
 def geojson_add_issue(processor, log_level, code, message, item_index=None, item=None, item_type=None, item_properties=None):
-    global report
 
-    entry = {
-        'processor': processor,
-        'code': code,
-        'message': message,
-        'item': None
-    }
     if item:
-        entry['item'] = {
+        item = {
             'entity': {
                 'type': item_type,
                 'location': {
@@ -61,7 +54,23 @@ def geojson_add_issue(processor, log_level, code, message, item_index=None, item
             },
             'properties': item_properties
         }
-    report[log_level].append(entry)
+
+    add_issue(processor, log_level, code, message, item)
+
+
+def add_issue(processor, log_level, code, message, item):
+    global report
+
+    if log_level not in report:
+        raise RuntimeError(_('Log-level must be one of logging.INFO, logging.WARNING or logging.ERROR'))
+
+    report[log_level].append({
+        'processor': processor,
+        'code': code,
+        'message': message,
+        'row': row if row else []
+    })
+
 
 def compile_report(filename, metadata):
     global report, properties
