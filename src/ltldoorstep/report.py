@@ -15,6 +15,9 @@ class Report(object):
             logging.ERROR: []
         }
 
+    def get_issues(self):
+        return self.issues
+
     def add_issue(self, processor, log_level, code, message, item = None):
         """This function will add an issue to the report and takes as parameters the processor, the log level, code, message"""
 

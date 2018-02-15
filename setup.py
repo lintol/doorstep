@@ -46,6 +46,7 @@ setup(
     },
     install_requires=[
         'Click',
+        'fiona',
         'shapely',
         'geojson_utils',
         'geopandas',
