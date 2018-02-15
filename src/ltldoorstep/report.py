@@ -16,6 +16,7 @@ class Report(object):
         }
 
     def add_issue(self, processor, log_level, code, message, item = None):
+        """This function will add an issue to the report and takes as parameters the processor, the log level, code, message"""
 
 
         if log_level not in self.issues:
@@ -34,6 +35,8 @@ class Report(object):
 class TabularReport(Report):
 
     def add_issue(self, processor, log_level, code, message, row_number=None, column_number=None, row=None):
+        """This function will add an issue to the report and takes as parameters the processor, the log level, code, message"""
+
         item = {
             'entity': {
                 'type': item_type,
@@ -50,8 +53,11 @@ class TabularReport(Report):
 
 
 class GeoJSONReport(Report):
+
     def add_issue(self, processor, log_level, code, message, item_index=None, item=None, item_type=None,
                           item_properties=None):
+        """This function will add an issue to the report and takes as parameters the processor, the log level, code, message"""
+
         if item:
             item = {
                 'entity': {
