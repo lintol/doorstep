@@ -19,13 +19,11 @@ from ltldoorstep import report
 
 
 OUTLINES = {
-    'GB-NIR': '/data/osni-ni-outline-lowres.geojson'
+    'GB-NIR': 'data/osni-ni-outline-lowres.geojson'
 }
 
-r = report.GeoJSONReport("GeoJSON Boundary Processor", "Info from GeoJSON Processor - example info")
-
 """This function will determine if a given dataset is within the boundaries of Northern Ireland"""
-def find_ni_data(first_file, metadata=None):
+def find_ni_data(r, first_file, metadata=None):
     code = 'GB-NIR'
     # If metadata AND defintions is contained in the metadata...
     if metadata and 'definitions' in metadata and metadata['definitions']:
@@ -87,9 +85,13 @@ def find_ni_data(first_file, metadata=None):
         )
 
 class BoundaryCheckerImprovedProcessor(DoorstepProcessor):
+    @staticmethod
+    def make_report():
+        return report.GeoJSONReport("GeoJSON Boundary Processor", "Info from GeoJSON Processor - example info")
+
     def get_workflow(self, filename, metadata={}):
         workflow = {
-            'output': (find_ni_data, filename, metadata)
+            'output': (find_ni_data, self._report, filename, metadata)
         }
         return workflow
 

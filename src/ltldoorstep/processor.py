@@ -1,8 +1,18 @@
 import os
 import logging
+from .report import Report
 
 class DoorstepProcessor:
-    pass
+    @staticmethod
+    def make_report():
+        return Report("(unknown processor)", "(no description provided)")
+
+    def __init__(self):
+        self._report = self.make_report()
+
+    def compile_report(self, filename='unknown.csv', metadata=None):
+        return compile_report(self._report, filename, metadata)
+
 
 # TODO: refactor into the incoming Report singleton classes
 report = {
@@ -72,8 +82,10 @@ def add_issue(processor, log_level, code, message, item):
     })
 
 
-def compile_report(filename, metadata):
-    global report, properties
+def compile_report(report, filename, metadata):
+    global properties
+
+    issues = report.get_issues()
 
     if metadata and 'fileType' in metadata:
         frmt = metadata['fileType']
@@ -82,17 +94,17 @@ def compile_report(filename, metadata):
         if frmt and frmt[0] == '.':
             frmt = frmt[1:]
 
-    valid = not bool(report[logging.ERROR])
+    valid = not bool(issues[logging.ERROR])
 
     return {
-        'error-count': sum([len(r) for r in report.values()]),
+        'error-count': sum([len(r) for r in issues.values()]),
         'valid': valid,
         'tables': [
             {
                 'format': frmt,
-                'errors': report[logging.ERROR],
-                'warnings': report[logging.WARNING],
-                'informations': report[logging.INFO],
+                'errors': issues[logging.ERROR],
+                'warnings': issues[logging.WARNING],
+                'informations': issues[logging.INFO],
                 'row-count': properties['row-count'],
                 'headers': properties['headers'],
                 'source': filename,
@@ -101,7 +113,7 @@ def compile_report(filename, metadata):
                 'scheme': 'file',
                 'encoding': properties['encoding'],
                 'schema': None,
-                'error-count': sum([len(r) for r in report.values()])
+                'error-count': sum([len(r) for r in issues.values()])
             }
         ],
         'preset': properties['preset'],

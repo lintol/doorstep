@@ -2,7 +2,7 @@ import os
 from dask.threaded import get
 from ltldoorstep import report
 import logging
-from ltldoorstep import report
+from ltldoorstep import processor
 import pytest
 
 from processors.boundary_checker_impr import BoundaryCheckerImprovedProcessor
@@ -11,7 +11,8 @@ def test_boundary_checker_on_pedestrian_crossings():
     path = os.path.join('data', 'pedestriancrossing.geojson')
     boundary_checker = BoundaryCheckerImprovedProcessor()
     workflow = boundary_checker.get_workflow(path)
-    results = get(workflow, 'output')
+    get(workflow, 'output')
+    results = boundary_checker.compile_report()
     assert len(results) == 1
 
     report = results[0]
