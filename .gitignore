@@ -15,3 +15,5 @@ dask-worker-space
 *SFConflict*
 ~
 /example/out
+/dist
+/.pytest_cache
