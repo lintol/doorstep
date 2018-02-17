@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from dask.distributed import Client
 from .dask_common import execute
 from ..file import make_file_manager
+from .engine import Engine
 
 
 DEFAULT_CLIENT = 'tcp://localhost:8786'
@@ -15,7 +16,7 @@ DEFAULT_CLIENT = 'tcp://localhost:8786'
 def make_client(url):
     return Client(url, asynchronous=True)
 
-class DaskDistributedEngine:
+class DaskDistributedEngine(Engine):
     """Allow execution over a dask cluster."""
 
     client = None

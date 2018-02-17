@@ -15,23 +15,31 @@ import pandas as p
 import geopandas as gp
 import csv
 import sys
-from ltldoorstep.processor import DoorstepProcessor, geojson_add_issue, compile_report, set_properties
+import os
+from ltldoorstep.processor import DoorstepProcessor, geojson_add_issue, compile_report, set_properties, add_supplementary
 
-OUTLINES = {
-    'GB-NIR': 'example/data/osni-ni-outline-lowres.geojson'
-}
+DEFAULT_OUTLINE = 'example/data/osni-ni-outline-lowres.geojson'
 
 
 def find_ni_data(first_file, metadata=None):
-    code = 'GB-NIR'
-    if metadata and 'definitions' in metadata and metadata['definitions']:
-        metadata = metadata['definitions'].values()[0]
+    ni_data = DEFAULT_OUTLINE
+    if metadata and 'definition' in metadata:
         if metadata and \
                 'configuration' in metadata and \
                 'boundary' in metadata['configuration'] and \
-                metadata['configuration']['boundary'] in OUTLINES:
-            code = metadata['configuration']['boundary']
-    ni_data = OUTLINES[code]
+                metadata['configuration']['boundary'].startswith('$->'):
+
+            boundary_key = metadata['configuration']['boundary'][3:]
+
+            if not 'supplementary' in metadata or boundary_key not in metadata['supplementary']:
+                raise RuntimeError("Boundary not found in supplementary data")
+
+            boundary = metadata['supplementary'][boundary_key]
+            ni_data = boundary['location']
+            add_supplementary('boundary', boundary['source'], 'Boundary against which points are tested')
+
+            if not os.path.exists(ni_data):
+                raise RuntimeError("Boundary not found on filesystem")
 
     with open(first_file) as data_file:
         data_to_compare = gp.GeoDataFrame.from_features(json.load(data_file)['features'])

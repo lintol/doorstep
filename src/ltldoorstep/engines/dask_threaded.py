@@ -5,9 +5,10 @@ from contextlib import contextmanager
 from importlib.machinery import SourceFileLoader
 from ..file import make_file_manager
 from .dask_common import run
+from .engine import Engine
 
 
-class DaskThreadedEngine:
+class DaskThreadedEngine(Engine):
     """Allow execution of a dask workflow within this process."""
 
     def add_data(self, filename, content, session):

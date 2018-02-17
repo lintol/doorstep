@@ -46,6 +46,7 @@ setup(
     },
     install_requires=[
         'Click',
+        'docker',
         'shapely',
         'geojson_utils',
         'geopandas',
@@ -62,7 +63,8 @@ setup(
         'pandas',
         'boto3',
         'autobahn',
-        'ckanapi'
+        'ckanapi',
+        'requests'
     ],
     include_package_data=True,
     tests_require=[

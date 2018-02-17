@@ -10,6 +10,7 @@ report = {
     logging.INFO: [],
     logging.ERROR: []
 }
+supplementary = []
 
 properties = {
     'row-count': None,
@@ -18,6 +19,15 @@ properties = {
     'preset': 'table',
     'headers': []
 }
+
+def add_supplementary(typ, source, name):
+    global supplementary
+
+    supplementary.append({
+        'type': typ,
+        'source': source,
+        'name': name
+    })
 
 def set_properties(**kwargs):
     global properties
@@ -64,7 +74,7 @@ def geojson_add_issue(processor, log_level, code, message, item_index=None, item
     report[log_level].append(entry)
 
 def compile_report(filename, metadata):
-    global report, properties
+    global report, properties, supplementary
 
     if metadata and 'fileType' in metadata:
         frmt = metadata['fileType']
@@ -76,6 +86,7 @@ def compile_report(filename, metadata):
     valid = not bool(report[logging.ERROR])
 
     return {
+        'supplementary': supplementary,
         'error-count': sum([len(r) for r in report.values()]),
         'valid': valid,
         'tables': [
@@ -100,3 +111,24 @@ def compile_report(filename, metadata):
         'table-count': 1,
         'time': properties['time']
     }
+
+
+def properties_from_report(report):
+    table = report['tables'][0]
+    return {
+        'row-count': table['row-count'],
+        'time': report['time'],
+        'encoding': table['encoding'],
+        'preset': report['preset'],
+        'headers': table['headers']
+    }
+
+def combine_reports(base, additional):
+    for base_table, additional_table in zip(base['tables'], additional['tables']):
+        for level in ('errors', 'warnings', 'informations'):
+            base_table[level] += additional_table[level]
+        base_table['error-count'] += additional_table['error-count']
+
+    base['supplementary'] += additional['supplementary']
+
+    return base
