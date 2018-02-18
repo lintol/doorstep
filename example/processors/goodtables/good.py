@@ -5,8 +5,6 @@ import logging
 from ltldoorstep.processor import DoorstepProcessor, tabular_add_issue, set_properties
 
 class GoodTablesProcessor(DoorstepProcessor):
-    reportClass = TabularReport
-
     def structure_report(report):
         results = {}
 
@@ -24,7 +22,7 @@ class GoodTablesProcessor(DoorstepProcessor):
             )
             if level in table and table[level]:
                 for error in table[level]:
-                    self.report.add_issue(
+                    tabular_add_issue(
                         log_level,
                         error['code'],
                         error['message'],

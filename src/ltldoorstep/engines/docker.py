@@ -237,7 +237,8 @@ class DockerEngine(Engine):
                     'LINTOL_PROCESSOR_DIRECTORY': '/pfs/processors/%s' % processor['name'],
                     'LINTOL_OUTPUT_FILE': '/pfs/out/raw/%s.json' % processor['name'],
                     'LINTOL_METADATA': '/pfs/processors/%s/metadata.json' % processor['name'],
-                    'LINTOL_INPUT_DATA': '/pfs/data'
+                    'LINTOL_INPUT_DATA': '/pfs/data',
+                    'LINTOL_DATA_FILE': data_basename
                 }
                 report_files.append(os.path.join(out_root, 'raw', '%s.json' % processor['name']))
 

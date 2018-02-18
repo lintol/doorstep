@@ -64,7 +64,8 @@ setup(
         'boto3',
         'autobahn',
         'ckanapi',
-        'requests'
+        'requests',
+        'docker'
     ],
     include_package_data=True,
     tests_require=[
