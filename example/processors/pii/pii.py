@@ -13,6 +13,7 @@ from dask.threaded import get
 import sys
 from ltldoorstep.processor import DoorstepProcessor, tabular_add_issue
 from nltk.tag.stanford import StanfordNERTagger
+from ltldoorstep import report
 
 pii_details = {
     'N': 'name',
@@ -41,16 +42,19 @@ def return_report(csv):
     for key, details in analysis.items():
         if details:
             code = 'check_pii_detail:pii-found:{key}'.format(key=key)
-            tabular_add_issue(
+            report.TabularReport.add_issue(
                 'lintol-pii-checker',
                 logging.INFO,
                 code,
-                _("Personally identifiable information found") + ': ' + str(details),
-                error_data={'personally-identifiable-information': details}
+                ("Personally identifiable information found") + ': ' + str(details),
+                'personally-identifiable-information'
             )
 
 
 class PiiProcessor(DoorstepProcessor):
+    def make_report(self):
+        return report.TabularReport('PII Processor', "Info from PII processor")
+
     def get_workflow(self, filename, metadata={}):
         """Workflow builder
 
@@ -65,7 +69,7 @@ class PiiProcessor(DoorstepProcessor):
         #  report_returned: Using return_report and loading csv file....
         #  output: This will be the output
         workflow = {
-            'output': (return_report, filename)
+            'output': (return_report, filename, self._report)
         }
 
         # Returns workflow dict

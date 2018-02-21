@@ -1,6 +1,7 @@
 import os
 from dask.threaded import get
 from processors.registers import RegisterCountryProcessor
+import pytest
 
 def testing_register_pass():
     path = os.path.join('data', 'registers-sample.csv')
