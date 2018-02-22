@@ -42,34 +42,35 @@ def find_ni_data(first_file, metadata=None):
                 raise RuntimeError("Boundary not found on filesystem")
 
     with open(first_file) as data_file:
+        # Setting up data that will be compared to the dataset/file being passed in
         data_to_compare = gp.GeoDataFrame.from_features(json.load(data_file)['features'])
 
     set_properties(preset='geojson', headers=list(data_to_compare.columns))
     # If csv file has these attributes then...
     if 'geometry' in data_to_compare:
 
-        # TODO: could put a check here if file is csv or geojson...
-        # need to do this later.
-
-        # This is the second geojson file that should be NI boundaries.
-        # This is what we are comparing the first csv/json file to.
+        # This is what we are comparing the first csv/json file to - contains data of NI.
         ni_compare_data = gp.read_file(ni_data)
-
-        # This var contains the output of the function point_in_multipolygon.
-        # This should contain a bool.
+        # Multipolyon var is set to the first index of ni_compare_data with the key 'geometry'
         multipolygon = ni_compare_data.ix[0]['geometry']
+        # points var is set with data_to_compare with the key 'geometry'
         points = data_to_compare['geometry']
+        # outside_points is set to data that is not in multipolygon - this is values outside NI?
         outside_points = data_to_compare[[not multipolygon.contains(p) for p in points]]
+        # inside_points_ct is set the sum of the length of points minus outside points
         inside_points_ct = len(points) - len(outside_points)
 
-        # If data in the first csv file are not contained in the second NI geojson file do this...
+        # If outside points are not empty then....
         if not outside_points.empty:
-            # Report dict warns user that location is not in NI
+            # Iterating through index and points in outside points
             for ix, point in outside_points.iterrows():
                 geopoint = shapely.geometry.mapping(point['geometry'])
+                # props is set to a dictonary object of point
                 props = dict(point)
+                # removing key 'geometry'
                 del props['geometry']
-                geojson_add_issue(
+                # calling Report object method add_issue
+                r.add_issue(
                     'lintol/boundary-checker-improved:1',
                     logging.ERROR,
                     'locations-not-found',
@@ -79,9 +80,9 @@ def find_ni_data(first_file, metadata=None):
                     item_type=geopoint['type'],
                     item_properties=props
                 )
-    # If the csv file does not have any location data....
+    # If the file does not have any location data....
     else:
-        geojson_add_issue(
+        r.add_issue(
             'lintol/boundary-checker-improved:1',
             logging.WARNING,
             'no-location-data-found',
@@ -89,9 +90,13 @@ def find_ni_data(first_file, metadata=None):
         )
 
 class BoundaryCheckerImprovedProcessor(DoorstepProcessor):
+    @staticmethod
+    def make_report():
+        return report.GeoJSONReport("GeoJSON Boundary Processor", "Info from GeoJSON Processor - example info")
+
     def get_workflow(self, filename, metadata={}):
         workflow = {
-            'output': (find_ni_data, filename, metadata)
+            'output': (find_ni_data, self._report, filename, metadata)
         }
         return workflow
 
