@@ -28,7 +28,7 @@ def check_nltk(csv):
     ner = StanfordNERTagger('classifiers/english.conll.4class.distsim.crf.ser.gz')
     ner.
 
-def return_report(csv):
+def return_report(csv, r):
     # Feeding in csv file to PIIAnalyzer...
     piianalyzer = PiiAnalyzer(csv)
 
@@ -42,7 +42,7 @@ def return_report(csv):
     for key, details in analysis.items():
         if details:
             code = 'check_pii_detail:pii-found:{key}'.format(key=key)
-            report.TabularReport.add_issue(
+            r.add_issue(
                 'lintol-pii-checker',
                 logging.INFO,
                 code,
