@@ -4,8 +4,8 @@ from unittest.mock import Mock, patch, mock_open
 import pytest
 import asyncio
 from ltldoorstep.engines.dask_threaded import DaskThreadedEngine
+from ltldoorstep.processor import DoorstepProcessor
 
-from ltldoorstep import processor as p
 import logging
 
 @pytest.fixture
@@ -16,11 +16,12 @@ def engine():
 
     return eng
 
-class TestProcessor:
-    _report = {}
+class TestProcessor(DoorstepProcessor):
+    preset = 'tabular'
+    code = 'testing-processor'
 
     def ret(self, r, filename, metadata):
-        p.tabular_add_issue(filename.upper(), logging.ERROR, 'foo-bar', filename)
+        r.add_issue(logging.ERROR, 'foo-bar', filename.upper())
 
     def get_workflow(self, filename, metadata):
         return {'output': (self.ret, self._report, filename, metadata)}
@@ -39,11 +40,11 @@ def test_can_run_workflow(engine):
     module = Mock()
 
     source_file_loader().load_module.return_value = module
-    module.processor = TestProcessor
+    module.processor = TestProcessor.make
     loop = asyncio.get_event_loop()
 
     with patch('ltldoorstep.engines.dask_threaded.open', mopen) as _, \
             patch(source_file_loader_path, source_file_loader):
         result = loop.run_until_complete(engine.run(filename, module, metadata))
 
-    assert result['tables'][0]['errors'][0]['processor'].upper() == filename.upper()
+    assert result['tables'][0]['errors'][0]['message'] == filename.upper()

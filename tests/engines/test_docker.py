@@ -40,7 +40,7 @@ def test_can_run_workflow(engine):
     module = Mock()
 
     source_file_loader().load_module.return_value = module
-    module.processor = TestProcessor
+    module.processor = TestProcessor.make
     loop = asyncio.get_event_loop()
 
     with patch('ltldoorstep.engines.dask_threaded.open', mopen) as _, \

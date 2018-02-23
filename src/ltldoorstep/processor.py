@@ -23,8 +23,16 @@ class DoorstepProcessor:
 
         return report(code, description)
 
-    def __init__(self):
-        self._report = self.make_report()
+    def initialize(self, report=None):
+        if report is None:
+            report = self.make_report()
+        self._report = report
+
+    @classmethod
+    def make(cls):
+        new = cls()
+        new.initialize()
+        return new
 
     def compile_report(self, filename=None, metadata=None):
         return self._report.compile(filename, metadata)

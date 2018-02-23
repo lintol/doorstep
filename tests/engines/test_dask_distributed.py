@@ -27,18 +27,21 @@ def test_can_run_workflow(engine):
     metadata = {}
 
     test_module = '''
-from ltldoorstep import processor as p
+from ltldoorstep.processor import DoorstepProcessor
 import logging
 
-class TestProcessor:
-    _report = {}
+class TestProcessor(DoorstepProcessor):
+    code = 'testing-processor'
+    preset = 'geojson'
+
     def get_workflow(self, filename, metadata):
         return {'output': (ret, self._report, filename, metadata)}
 
-processor = TestProcessor
+processor = TestProcessor.make
 
 def ret(r, filename, metadata):
-    p.tabular_add_issue(filename.upper(), logging.ERROR, 'foo-bar', filename)
+    r.add_issue(logging.ERROR, 'foo-bar', filename.upper())
+
     '''
 
     mopen = mock_open(read_data=test_module)
@@ -53,4 +56,4 @@ def ret(r, filename, metadata):
 
         result = _exec()
 
-    assert result['tables'][0]['errors'][0]['processor'].upper() == filename.upper()
+    assert result['tables'][0]['errors'][0]['message'] == filename.upper()
