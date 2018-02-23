@@ -1,7 +1,16 @@
-import logging
 """This is the report object that will be used for the standardisation of processors reporting
-The Report superclass can be inherited for different forms of reporting i.e. tabluar, GeoJSON etc."""
+The Report superclass can be inherited for different forms of reporting i.e. tabular, GeoJSON etc."""
 
+
+import logging
+import os
+
+def get_report_class_from_preset(preset):
+    if preset not in _report_class_from_preset:
+        raise NotImplementedError(_(
+            "This version of doorstep does not have the requested Report preset type"
+        ))
+    return _report_class_from_preset[preset]
 
 class ReportItem:
     def __init__(self, typ, location, definition, properties):
@@ -67,7 +76,7 @@ class ReportIssue:
             'code' : self.code,
             'message' : self.message,
             'item': self.item,
-            'context': [c.parse() for c in self.context],
+            'context': [c.parse() for c in self.context] if self.context else None,
             'error-data': self.error_data
         }
 
@@ -80,8 +89,16 @@ class ReportIssueLiteral(ReportIssue):
     def render(self):
         return self.literal
 
-class Report:
-    def __init__(self, processor, info, filename='', metadata={}, headers=[], encoding='utf-8', time=0., row_count=None, supplementary, issues=None):
+class Report(object):
+    preset = None
+
+    @classmethod
+    def get_preset(self):
+        if not self.preset:
+            raise NotImplementedError(_("This report class must have a preset type"))
+        return self.preset
+
+    def __init__(self, processor, info, filename='', metadata={}, headers=[], encoding='utf-8', time=0., row_count=None, supplementary=[], issues=None):
         if issues is None:
             self.issues = {
                 logging.ERROR: [],
@@ -101,7 +118,7 @@ class Report:
             'row-count': row_count,
             'time': time,
             'encoding': encoding,
-            'preset': self.preset,
+            'preset': self.get_preset(),
             'headers': headers
         }
 
@@ -145,8 +162,9 @@ class Report:
         row_count = table['row-count']
         time = table['time']
         encoding = table['encoding']
-        preset = table['preset']
         headers = table['headers']
+
+        cls = get_report_class_from_preset(dictionary['preset'])
 
         return cls(
             filename=filename,
@@ -154,17 +172,29 @@ class Report:
             row_count=row_count,
             time=time,
             encoding=encoding,
-            preset=preset,
             headers=headers,
             metadata=metadata,
             issues=issues
         )
 
-    def compile(self):
-        report = self.issues
+    def update(self, additional):
+        for level, issues in additional.issues.items():
+            self.issues[level] += issues
+
+        self.supplementary += additional.supplementary
+
+    def compile(self, filename=None, metadata=None):
+        report = {k: [item.render() for item in v] for k, v in self.issues.items()}
         supplementary = self.supplementary
-        metadata = self.metadata
-        filename = self.filename
+
+        if filename is None:
+            filename = self.filename
+
+        if not filename:
+            filename = 'unknown.csv'
+
+        if metadata is None:
+            metadata = self.metadata
 
         if metadata and 'fileType' in metadata:
             frmt = metadata['fileType']
@@ -174,6 +204,7 @@ class Report:
                 frmt = frmt[1:]
 
         valid = not bool(report[logging.ERROR])
+
         return {
             'supplementary': supplementary,
             'error-count': sum([len(r) for r in report.values()]),
@@ -195,7 +226,7 @@ class Report:
                     'error-count': sum([len(r) for r in report.values()])
                 }
             ],
-            'preset': self.properties['preset'],
+            'preset': self.get_preset(),
             'warnings': [],
             'table-count': 1,
             'time': self.properties['time']
@@ -221,67 +252,9 @@ class Report:
         if log_level not in self.issues:
             raise RuntimeError(_('Log-level must be one of logging.INFO, logging.WARNING or logging.ERROR'))
 
-        issue = ReportIssue(log_level, item=item, context=None, processor=self._processor, code=code, message=message, error_data={})
+        issue = ReportIssue(log_level, item=item, context=None, processor=self.processor, code=code, message=message, error_data={})
 
         self.append_issue(issue)
-
-
-class TabularReport(Report):
-
-    preset = 'tabular'
-
-    def add_issue(self, log_level, code, message, row_number=None, column_number=None, row=None):
-        """This function will add an issue to the report and takes as parameters the processor, the log level, code, message"""
-
-        if row_number:
-            if column_number:
-                typ = 'Cell'
-            else:
-                typ = 'Row'
-        else:
-            if column_number:
-                typ = 'Column'
-            else:
-                typ = 'Global'
-
-        item = {
-            'entity': {
-                'type': typ,
-                'location': {
-                    'row': row_number,
-                    'column': column_number,
-                },
-                'definition': item
-            },
-            'properties': item_properties
-        }
-
-        super().add_issue(log_level, code, message, item)
-
-
-
-class GeoJSONReport(Report):
-
-    preset = 'geojson'
-
-    def add_issue(self, log_level, code, message, item_index=None, item=None, item_type=None,
-                          item_properties=None):
-        """This function will add an issue to the report and takes as parameters the processor, the log level, code, message"""
-
-        if item:
-            item = {
-                'entity': {
-                    'type': item_type,
-                    'location': {
-                        'index': item_index
-                    },
-                    'definition': item
-                },
-                'properties': item_properties
-            }
-
-        super().add_issue(log_level, code, message, item)
-
 
 def properties_from_report(report):
     table = report['tables'][0]
@@ -292,3 +265,12 @@ def properties_from_report(report):
         'preset': report['preset'],
         'headers': table['headers']
     }
+
+
+from .geojson import GeoJSONReport
+from .tabular import TabularReport
+
+_report_class_from_preset = {
+    cls.get_preset(): cls for cls in
+    (GeoJSONReport, TabularReport)
+}

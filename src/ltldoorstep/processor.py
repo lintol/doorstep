@@ -1,14 +1,30 @@
 import os
 import logging
-from .report import Report
+from .reports.report import Report, get_report_class_from_preset
 
 class DoorstepProcessor:
-    @staticmethod
-    def make_report():
-        return Report("(unknown processor)", "(no description provided)")
+    preset = None
+    code = None
+    description = None
+
+    @classmethod
+    def make_report(cls):
+        report = get_report_class_from_preset(cls.preset)
+
+        if cls.code:
+            code = cls.code
+        else:
+            code = _("(unknown processor)")
+
+        if cls.description:
+            description = cls.description
+        else:
+            description = _("(no processor description provided)")
+
+        return report(code, description)
 
     def __init__(self):
         self._report = self.make_report()
 
-    def compile_report(self, filename='unknown.csv', metadata=None):
-        return compile_report(self._report, filename, metadata)
+    def compile_report(self, filename=None, metadata=None):
+        return self._report.compile(filename, metadata)

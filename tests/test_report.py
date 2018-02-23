@@ -1,6 +1,6 @@
 """Testing for report functionality"""
 import pytest
-from ltldoorstep import report
+from ltldoorstep.reports import report
 import logging
 
 

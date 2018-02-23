@@ -85,6 +85,9 @@ class PachydermEngine(Engine):
             # TODO: check lang is valid
             lang = metadata['lang']
 
+        if 'definitions' not in metadata:
+            metadata['definitions'] = {str(uuid.uuid4()): {}}
+
         for uid, processor in metadata['definitions'].items():
             docker_image = 'lintol/doorstep'
             docker_revision = 'latest'
@@ -100,7 +103,7 @@ class PachydermEngine(Engine):
             docker = '{image}:{revision}'.format(image=docker_image, revision=docker_revision)
             configuration = {
                 'definition': processor,
-                'settings': metadata['settings']
+                'settings': metadata['settings'] if 'settings' in metadata else {}
             }
 
             metadata_json = json.dumps(configuration).encode('utf-8')
@@ -186,7 +189,7 @@ class PachydermEngine(Engine):
 
         with self.make_session() as session:
             with open(workflow_module, 'r') as file_obj:
-                self.add_processor('processor.py', file_obj.read().encode('utf-8'), metadata, session)
+                self.add_processor({'processor.py', file_obj.read().encode('utf-8')}, metadata, session)
 
             if bucket:
                 content = filename

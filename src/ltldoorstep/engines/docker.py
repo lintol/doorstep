@@ -14,7 +14,6 @@ import docker
 import tempfile
 import json
 from .engine import Engine
-from ..processor import compile_report, combine_reports
 
 
 DEFAULT_CLIENT = 'tcp://localhost:8786'
@@ -135,10 +134,12 @@ class DockerEngine(Engine):
 
     @staticmethod
     def combine_reports(data_file, reports):
-        base = compile_report(data_file, None)
+        base = Report(None, None)
+
         for report in reports:
-            base = combine_reports(report, base)
-        return base
+            base.update(report)
+
+        return base.compile(data_file, metadata)
 
     async def get_output(self, session):
         await session['completion'].acquire()

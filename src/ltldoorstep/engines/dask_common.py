@@ -2,7 +2,6 @@
 
 import os
 from dask import threaded
-from ltldoorstep.processor import compile_report
 
 def execute(filename, module_name, metadata):
     """Import and run a workflow on a data file."""
@@ -17,4 +16,4 @@ def run(filename, mod, metadata):
 
     threaded.get(workflow, 'output')
 
-    return compile_report(filename, metadata)
+    return processor.compile_report(filename, metadata)
