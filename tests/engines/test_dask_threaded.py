@@ -5,6 +5,9 @@ import pytest
 import asyncio
 from ltldoorstep.engines.dask_threaded import DaskThreadedEngine
 
+from ltldoorstep import processor as p
+import logging
+
 @pytest.fixture
 def engine():
     """Create a threaded dask engine."""
@@ -13,27 +16,34 @@ def engine():
 
     return eng
 
+class TestProcessor:
+    _report = {}
+
+    def ret(self, r, filename, metadata):
+        p.tabular_add_issue(filename.upper(), logging.ERROR, 'foo-bar', filename)
+
+    def get_workflow(self, filename, metadata):
+        return {'output': (self.ret, self._report, filename, metadata)}
+
 def test_can_run_workflow(engine):
     """Check we can run a workflow on local files."""
 
     filename = '/tmp/foo.csv'
     module = '/tmp/bar.py'
+    metadata = {}
 
     mopen = mock_open(read_data='{}')
     source_file_loader_path = 'ltldoorstep.engines.dask_threaded.SourceFileLoader'
     source_file_loader = Mock()
 
     module = Mock()
-    processor = Mock()
 
     source_file_loader().load_module.return_value = module
-    module.get_workflow.return_value = {
-        'output': (processor, 'foo')
-    }
+    module.processor = TestProcessor
     loop = asyncio.get_event_loop()
 
     with patch('ltldoorstep.engines.dask_threaded.open', mopen) as _, \
             patch(source_file_loader_path, source_file_loader):
-        loop.run_until_complete(engine.run(filename, module))
+        result = loop.run_until_complete(engine.run(filename, module, metadata))
 
-    processor.assert_called_with('foo')
+    assert result['tables'][0]['errors'][0]['processor'].upper() == filename.upper()

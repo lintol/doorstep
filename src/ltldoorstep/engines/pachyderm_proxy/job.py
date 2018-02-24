@@ -6,6 +6,11 @@ class PachydermJob:
     _id = None
     _state = None
 
+    @staticmethod
+    async def _execute(*args):
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, clients['pps'].list_job, pipeline.get_definition())
+
     def __init__(self, clients, jid):
         self._id = jid
         self._clients = clients
@@ -20,7 +25,7 @@ class PachydermJob:
     async def list_jobs(cls, clients, pipeline):
         jobs = []
         loop = asyncio.get_event_loop()
-        raw_jobs = await loop.run_in_executor(None, clients['pps'].list_job, pipeline.get_definition())
+        raw_jobs = await cls._execute(clients['pps'].list_job, pipeline.get_definition())
 
         for raw_job in raw_jobs.job_info:
             jobs.append(cls.from_raw(clients, raw_job))
@@ -41,7 +46,7 @@ class PachydermJob:
 
     async def update(self):
         loop = asyncio.get_event_loop()
-        raw_job = await loop.run_in_executor(None, self._clients['pps'].inspect_job, self._id)
+        raw_job = await self._execute(self._clients['pps'].inspect_job, self._id)
         self.update_from_raw(raw_job)
 
     def check(self):
