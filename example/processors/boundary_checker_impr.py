@@ -85,6 +85,7 @@ def find_ni_data(r, first_file, metadata=None):
         )
 
 class BoundaryCheckerImprovedProcessor(DoorstepProcessor):
+    # creating report
     @staticmethod
     def make_report():
         return report.GeoJSONReport("GeoJSON Boundary Processor", "Info from GeoJSON Processor - example info")
