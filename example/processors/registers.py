@@ -16,6 +16,7 @@ import sys
 import os
 from fuzzywuzzy import process, fuzz
 from ltldoorstep.processor import DoorstepProcessor
+from ltldoorstep import report
 
 
 EXCLUDE_EMPTY_MATCHES = True
@@ -127,21 +128,23 @@ def gov_countries_register_checker(data):
     issues = {k: issue for  k, issue in issues.items() if issue}
 
     mismatching_columns = {k: issue[1] for k, issue in issues.items() if issue[1]}
-    tabular_add_issue(
+    report.TabularReport.add_issue(
         'lintol/gov-uk-register-countries:1',
         logging.WARNING,
         'country-mismatch',
-        _("Non-matching entries for states column data") + ': ' + str(mismatching_columns),
-        error_data={'mismatching-columns': mismatching_columns}
+        ("Non-matching entries for states column data") + ': ' + str(mismatching_columns),
+        'Country mismatch'
+
     )
 
     checked_columns = {k: 'country-register-{col}'.format(col=issue[0]) for k, issue in issues.items()}
-    tabular_add_issue(
+    report.TabularReport.add_issue(
         'lintol/gov-uk-register-countries:1',
         logging.INFO,
         'country-mismatch',
-        _("Columns that were checked for state attributes (best-fit)") + ': ' + str(checked_columns),
-        error_data={'mismatching-columns': mismatching_columns}
+        ("Columns that were checked for state attributes (best-fit)") + ': ' + str(checked_columns),
+        'Country mismatch'
+
     )
 
 """This is the workflow builder.
@@ -150,12 +153,16 @@ This function will feed the json file into each method and then return the resul
 """
 
 class RegisterCountryProcessor(DoorstepProcessor):
+    @staticmethod
+    def make_report():
+        return report.TabularReport("Gov UK Registers Processor", "Info from Registers Processor")
+
     def get_workflow(self, filename, metadata={}):
         # setting up workflow dict
         workflow = {
             'load_csv' : (p.read_csv, filename),
             'gov_countries_register_checker' : (gov_countries_register_checker, 'load_csv'),
-            'output': (list, 'gov_countries_register_checker')
+            'output': (list, self._report, 'gov_countries_register_checker')
         }
         return workflow
 

@@ -1,8 +1,18 @@
 import os
 import logging
+from .report import Report
 
 class DoorstepProcessor:
-    pass
+    @staticmethod
+    def make_report():
+        return Report("(unknown processor)", "(no description provided)")
+
+    def __init__(self):
+        self._report = self.make_report()
+
+    def compile_report(self, filename='unknown.csv', metadata=None):
+        return compile_report(self._report, filename, metadata)
+
 
 # TODO: refactor into the incoming Report singleton classes
 report = {
@@ -27,31 +37,24 @@ def set_properties(**kwargs):
             properties[arg] = kwargs[arg]
 
 def tabular_add_issue(processor, log_level, code, message, row_number=None, column_number=None, row=None):
-    global report
+    item = {
+        'entity': {
+            'type': item_type,
+            'location': {
+                'row': row_number,
+                'column': column_number,
+            },
+            'definition': item
+        },
+        'properties': item_properties
+    }
 
-    if log_level not in report:
-        raise RuntimeError(_('Log-level must be one of logging.INFO, logging.WARNING or logging.ERROR'))
-
-    report[log_level].append({
-        'processor': processor,
-        'code': code,
-        'message': message,
-        'row-number': row_number,
-        'column-number': column_number,
-        'row': row if row else []
-    })
+    add_issue(processor, log_level, code, message, item)
 
 def geojson_add_issue(processor, log_level, code, message, item_index=None, item=None, item_type=None, item_properties=None):
-    global report
 
-    entry = {
-        'processor': processor,
-        'code': code,
-        'message': message,
-        'item': None
-    }
     if item:
-        entry['item'] = {
+        item = {
             'entity': {
                 'type': item_type,
                 'location': {
@@ -61,10 +64,28 @@ def geojson_add_issue(processor, log_level, code, message, item_index=None, item
             },
             'properties': item_properties
         }
-    report[log_level].append(entry)
 
-def compile_report(filename, metadata):
-    global report, properties
+    add_issue(processor, log_level, code, message, item)
+
+
+def add_issue(processor, log_level, code, message, item):
+    global report
+
+    if log_level not in report:
+        raise RuntimeError(_('Log-level must be one of logging.INFO, logging.WARNING or logging.ERROR'))
+
+    report[log_level].append({
+        'processor': processor,
+        'code': code,
+        'message': message,
+        'row': row if row else []
+    })
+
+
+def compile_report(report, filename, metadata):
+    global properties
+
+    issues = report.get_issues()
 
     if metadata and 'fileType' in metadata:
         frmt = metadata['fileType']
@@ -73,17 +94,17 @@ def compile_report(filename, metadata):
         if frmt and frmt[0] == '.':
             frmt = frmt[1:]
 
-    valid = not bool(report[logging.ERROR])
+    valid = not bool(issues[logging.ERROR])
 
     return {
-        'error-count': sum([len(r) for r in report.values()]),
+        'error-count': sum([len(r) for r in issues.values()]),
         'valid': valid,
         'tables': [
             {
                 'format': frmt,
-                'errors': report[logging.ERROR],
-                'warnings': report[logging.WARNING],
-                'informations': report[logging.INFO],
+                'errors': issues[logging.ERROR],
+                'warnings': issues[logging.WARNING],
+                'informations': issues[logging.INFO],
                 'row-count': properties['row-count'],
                 'headers': properties['headers'],
                 'source': filename,
@@ -92,7 +113,7 @@ def compile_report(filename, metadata):
                 'scheme': 'file',
                 'encoding': properties['encoding'],
                 'schema': None,
-                'error-count': sum([len(r) for r in report.values()])
+                'error-count': sum([len(r) for r in issues.values()])
             }
         ],
         'preset': properties['preset'],

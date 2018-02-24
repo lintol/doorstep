@@ -7,6 +7,7 @@ import unicodedata
 import unicodeblock.blocks
 import logging
 from ltldoorstep.processor import DoorstepProcessor, tabular_add_issue
+from ltldoorstep import report
 
 unicode_category_major = {
     'L': ('letter'),
@@ -19,7 +20,7 @@ unicode_category_major = {
 }
 
 
-def check_character_blocks(csv):
+def check_character_blocks(r,csv):
     # All characters are Latinate (unicodedata.normalize('NFKD')[0] is Latin)
     string_csv = csv.select_dtypes(include=['object'])
 
@@ -29,22 +30,22 @@ def check_character_blocks(csv):
 
     if None in block_set:
         block_set.remove(None)
-        tabular_add_issue(
+        r.add_issue(
             'lintol-csv-checker',
             logging.WARNING,
             'unknown-category',
-            _("Unknown character type found")
+            ("Unknown character type found")
         )
 
-    tabular_add_issue(
+    report.TablularReport.add_issue(
         'lintol-csv-checker',
         logging.WARNING,
         'blocks-found',
-        _("Character blocks found") + ': ' + ', '.join(block_set),
-        error_data={'block-set': list(block_set)}
+        ("Character blocks found") + ': ' + ', '.join(block_set),
+
     )
 
-def check_character_categories(csv):
+def check_character_categories(rprt, csv):
     # All characters are Latinate (unicodedata.normalize('NFKD')[0] is Latin)
     string_csv = csv.select_dtypes(include=['object'])
     categories = set()
@@ -52,12 +53,12 @@ def check_character_categories(csv):
     string_csv.apply(np.vectorize(lambda cell: categories.update({unicodedata.category(c) for c in cell})))
 
     categories_found = [unicode_category_major[c[0]] for c in categories]
-    tabular_add_issue(
+    rprt.add_issue(
         'lintol/csv-checker:1',
         logging.INFO,
         'categories-found',
-        _("Character categories found") + ': ' + ', '.join(categories_found),
-        error_data={'categories-found': categories_found}
+        ("Character categories found") + ': ' + ', '.join(categories_found),
+
     )
 
 def check_std_dev():
@@ -78,38 +79,36 @@ def check_std_dev():
         'check_std_dev:neg-std-dev': ('Rows with negative Standard Deviation', logging.WARNING, bad_rows)
     }
 
-def check_ids_unique(csv):
+def check_ids_unique(csv, rprt):
     # IDs are unique
     ids = csv['ID']
     min_duplicates = len(set(ids)) < len(ids)
     if min_duplicates > 0:
-        tabular_add_issue(
+        rprt.TablularReport.add_issue(
             'lintol/csv-checker:1',
             logging.WARNING,
             'check-ids-unique:ids-not-unique',
-            _("IDs are not unique, at least %d duplicates") % min_duplicates,
-            error_data={'min-duplicates': min_duplicates}
+            ("IDs are not unique, at least %d duplicates") % min_duplicates,
+
         )
 
-def check_ids_surjective(csv):
+def check_ids_surjective(csv, rprt):
     # IDs are surjective onto their range
     ids = csv['ID']
     unique_ids = len(set(ids))
     expected_ids = max(ids) - min(ids) + 1
     if expected_ids != unique_ids:
-        tabular_add_issue(
+        rprt.TablularReport.add_issue(
             'lintol:csv-checker:1',
             logging.WARNING,
             'check-ids-surjective:not-surjective',
-            _("IDs are missing, %d missing between %d and %d") % (expected_ids - unique_ids, min(ids), max(ids)),
-            error_data={
-                'missing-count': expected_ids - unique_ids,
-                'lowest-id': min(ids),
-                'highest-id': max(ids)
-            }
+            ("IDs are missing, %d missing between %d and %d") % (expected_ids - unique_ids, min(ids), max(ids)),
+
         )
 
 class CsvCheckerProcessor(DoorstepProcessor):
+    def make_report(self):
+        return report.TablularReport('CSV Checker Processor', 'Info from CSV Checker')
     def get_workflow(self, filename, metadata={}):
         workflow = {
             'load-csv': (pd.read_csv, filename),
@@ -117,7 +116,7 @@ class CsvCheckerProcessor(DoorstepProcessor):
             'step-B': (check_ids_unique, 'load-csv'),
             'step-C': (check_character_categories, 'load-csv'),
             'step-D': (check_character_blocks, 'load-csv'),
-            'output': (list, ['step-A', 'step-B', 'step-C', 'step-D'])
+            'output': (list, ['step-A', 'step-B', 'step-C', 'step-D'], self._report)
         }
         return workflow
 
