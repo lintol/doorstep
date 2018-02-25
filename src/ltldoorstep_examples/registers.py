@@ -15,8 +15,9 @@ import logging
 import sys
 import os
 from fuzzywuzzy import process, fuzz
+import ltldoorstep
+print(ltldoorstep.__dict__)
 from ltldoorstep.processor import DoorstepProcessor
-from ltldoorstep import report
 
 
 EXCLUDE_EMPTY_MATCHES = True

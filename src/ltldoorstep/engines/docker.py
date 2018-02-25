@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 from contextlib import contextmanager
 from dask.distributed import Client
 from .dask_common import execute
+from ..reports.report import Report, get_report_class_from_preset
 from ..file import make_file_manager
 import docker
 import tempfile
@@ -133,13 +134,21 @@ class DockerEngine(Engine):
         return (False, session['completion'].acquire())
 
     @staticmethod
-    def combine_reports(data_file, reports):
-        base = Report(None, None)
+    def combine_reports(reports):
+        presets = {report.preset for report in reports if report.preset}
+
+        if len(presets) != 1:
+            raise RuntimeError(
+                _("Report combining can only be performed on reports with the same 'preset' property")
+            )
+        preset = list(presets)[0]
+        rcls = get_report_class_from_preset(preset)
+        base = rcls(None, None)
 
         for report in reports:
             base.update(report)
 
-        return base.compile(data_file, metadata)
+        return base
 
     async def get_output(self, session):
         await session['completion'].acquire()
@@ -273,9 +282,11 @@ class DockerEngine(Engine):
             reports = []
             for report_file in report_files:
                 with open(report_file, 'r') as report_f:
-                    reports.append(json.load(report_f))
+                    reports.append(Report.load(report_f))
+                    print(reports)
 
-            result = DockerEngine.combine_reports(data_basename, reports)
+            report = DockerEngine.combine_reports(reports)
+            result = report.compile(data_basename)
 
         return result
 

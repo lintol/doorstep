@@ -3,6 +3,7 @@ The Report superclass can be inherited for different forms of reporting i.e. tab
 
 
 import logging
+import json
 import os
 
 def get_report_class_from_preset(preset):
@@ -17,16 +18,25 @@ class ReportItem:
         self.type = typ
         self.location = location
         self.definition = definition
-        self.properties = properties
+        self.properties = dict(properties) if properties else None
+
+    def __str__(self):
+        return json.dumps(self.render())
+
+    def __repr__(self):
+        return '(|Item: %s|)' % str(self)
 
     @classmethod
     def parse(cls, data):
-        return cls(
-            typ=data['entity']['type'],
-            location=data['entity']['location'],
-            definition=data['entity']['definition'],
-            properties=data['properties']
-        )
+        if data['entity']:
+            return cls(
+                typ=data['entity']['type'] if data['entity'] else None,
+                location=data['entity']['location'] if data['entity'] else None,
+                definition=data['entity']['definition'] if data['entity'] else None,
+                properties=data['properties']
+            )
+        else:
+            return cls(properties=data['properties'])
 
     def render(self):
         return {
@@ -55,6 +65,12 @@ class ReportIssue:
         self.context = context
         self.error_data = error_data
 
+    def __str__(self):
+        return json.dumps(self.render())
+
+    def __repr__(self):
+        return '(|Issue: %s|)' % str(self)
+
     def get_item(self):
         return self.item
 
@@ -66,7 +82,7 @@ class ReportIssue:
             code=data['code'],
             message=data['message'],
             item=ReportItem.parse(data['item']),
-            context=[ReportItem.parse(c) for c in data['context']],
+            context=[ReportItem.parse(c) for c in data['context']] if data['context'] else None,
             error_data=(data['error-data'] if 'error-data' in data else {})
         )
 
@@ -75,8 +91,8 @@ class ReportIssue:
             'processor': self.processor,
             'code' : self.code,
             'message' : self.message,
-            'item': self.item,
-            'context': [c.parse() for c in self.context] if self.context else None,
+            'item': self.item.render(),
+            'context': [c.render() for c in self.context] if self.context else None,
             'error-data': self.error_data
         }
 
@@ -89,14 +105,21 @@ class ReportIssueLiteral(ReportIssue):
     def render(self):
         return self.literal
 
-class Report(object):
+class Report:
     preset = None
 
     @classmethod
-    def get_preset(self):
-        if not self.preset:
+    def get_preset(cls):
+        if not cls.preset:
             raise NotImplementedError(_("This report class must have a preset type"))
-        return self.preset
+
+        return cls.preset
+
+    def __str__(self):
+        return json.dumps(self.compile())
+
+    def __repr__(self):
+        return '(|Report: %s|)' % str(self)
 
     def __init__(self, processor, info, filename='', metadata={}, headers=[], encoding='utf-8', time=0., row_count=None, supplementary=[], issues=None):
         if issues is None:
@@ -131,6 +154,10 @@ class Report(object):
         self.issues[issue.level].append(issue)
 
     @classmethod
+    def load(cls, file_obj):
+        return cls.parse(json.load(file_obj))
+
+    @classmethod
     def parse(cls, dictionary):
         issues = {}
 
@@ -154,7 +181,7 @@ class Report(object):
             table['informations']
         ]
 
-        filename = table['filename']
+        filename = dictionary['filename']
         metadata = {
             'fileType': table['format']
         }
@@ -167,6 +194,8 @@ class Report(object):
         cls = get_report_class_from_preset(dictionary['preset'])
 
         return cls(
+            '(unknown)',
+            '(parsed by ltldoorstep)',
             filename=filename,
             supplementary=supplementary,
             row_count=row_count,
@@ -209,6 +238,7 @@ class Report(object):
             'supplementary': supplementary,
             'error-count': sum([len(r) for r in report.values()]),
             'valid': valid,
+            'filename': filename,
             'tables': [
                 {
                     'format': frmt,
@@ -245,14 +275,17 @@ class Report(object):
                 properties[arg] = self.properties[arg]
 
 
-    def add_issue(self, log_level, code, message, item=None):
+    def add_issue(self, log_level, code, message, item=None, error_data=None):
         """This function will add an issue to the report and takes as parameters the processor, the log level, code, message"""
 
 
         if log_level not in self.issues:
             raise RuntimeError(_('Log-level must be one of logging.INFO, logging.WARNING or logging.ERROR'))
 
-        issue = ReportIssue(log_level, item=item, context=None, processor=self.processor, code=code, message=message, error_data={})
+        if not isinstance(item, ReportItem):
+            item = ReportItemLiteral(item)
+
+        issue = ReportIssue(log_level, item=item, context=None, processor=self.processor, code=code, message=message, error_data=error_data)
 
         self.append_issue(issue)
 

@@ -1,7 +1,7 @@
 import os
 from dask.threaded import get
 
-from processors.csvnl import GoodTablesProcessor
+from ltldoorstep_examples.csvnl import GoodTablesProcessor
 
 def test_csvnl_on_bad():
     path = os.path.join('data', 'bad.csv')

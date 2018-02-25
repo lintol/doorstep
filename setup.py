@@ -57,6 +57,7 @@ setup(
         'tabulate',
         'flask',
         'flask_restful',
+        'fuzzywuzzy',
         'unicodeblock',
         'goodtables',
         'pypachy',

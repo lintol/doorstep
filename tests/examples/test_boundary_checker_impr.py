@@ -6,7 +6,8 @@ from ltldoorstep import processor
 import pytest
 from collections import defaultdict
 
-from processors.boundary_checker_impr import BoundaryCheckerImprovedProcessor
+from ltldoorstep_examples.boundary_checker_impr import BoundaryCheckerImprovedProcessor
+
 
 def test_boundary_checker_on_pedestrian_crossings():
     path = os.path.join('data', 'pedestriancrossing.geojson')
@@ -24,8 +25,3 @@ def test_boundary_checker_on_pedestrian_crossings():
     assert len(report) == 2
     assert report[0]['item']['entity']['location']['index'] == 1191
     assert report[1]['item']['entity']['location']['index'] == 1297
-
-
-
-
-

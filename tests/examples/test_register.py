@@ -1,6 +1,6 @@
 import os
 from dask.threaded import get
-from processors.registers import RegisterCountryProcessor
+from ltldoorstep_examples.registers import RegisterCountryProcessor
 import pytest
 
 def testing_register_pass():
@@ -9,7 +9,6 @@ def testing_register_pass():
     workflow = registers.get_workflow(path)
     results = get(workflow, 'output')
 
-    print(results)
     assert len(results)==1
     report = results[0]
     assert report['country-checked'][2] == {'state': 'country-register-country', 'country': 'country-register-name', 'nationality': 'country-register-citizen-names'}
