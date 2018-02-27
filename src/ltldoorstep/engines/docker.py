@@ -66,10 +66,11 @@ class DockerEngine(Engine):
             docker_image = 'lintol/doorstep'
             docker_revision = 'latest'
 
-            if 'docker' in processor:
-                if 'image' in processor['docker']:
-                    docker_image = processor['docker']['image']
-                    docker_revision = processor['docker']['revision']
+            if 'definition' in processor:
+                if 'docker' in processor['definition']:
+                    if 'image' in processor['definition']['docker']:
+                        docker_image = processor['definition']['docker']['image']
+                        docker_revision = processor['definition']['docker']['revision']
 
             docker = '{image}:{revision}'.format(image=docker_image, revision=docker_revision)
             configuration = {
@@ -216,10 +217,11 @@ class DockerEngine(Engine):
                 docker_revision = 'latest'
                 lang = 'C.UTF-8' # TODO: more sensible default
 
-                if 'docker' in metadata:
-                    if 'image' in metadata['docker']:
-                        docker_image = metadata['docker']['image']
-                        docker_revision = metadata['docker']['revision']
+                if 'definition' in metadata:
+                    if 'docker' in metadata['definition']:
+                        if 'image' in metadata['definition']['docker']:
+                            docker_image = metadata['definition']['docker']['image']
+                            docker_revision = metadata['definition']['docker']['revision']
 
                 if 'lang' in metadata:
                     # TODO: check lang is valid
