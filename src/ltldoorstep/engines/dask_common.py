@@ -2,6 +2,7 @@
 
 import os
 from dask import threaded
+from ltldoorstep.reports.report import Report
 
 def execute(filename, module_name, metadata):
     """Import and run a workflow on a data file."""
@@ -14,6 +15,11 @@ def run(filename, mod, metadata):
     processor = mod.processor()
     workflow = processor.get_workflow(filename, metadata)
 
-    threaded.get(workflow, 'output')
+    result = threaded.get(workflow, 'output', num_workers=2)
+
+    if isinstance(result, tuple) and len(result) == 2 and isinstance(result[1], Report):
+        processor.set_report(result[1])
+    elif isinstance(result, Report):
+        processor.set_report(result)
 
     return processor.compile_report(filename, metadata)

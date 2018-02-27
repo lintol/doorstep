@@ -1,6 +1,6 @@
 import os
 import logging
-from .reports.report import Report, get_report_class_from_preset
+from .reports.report import Report, get_report_class_from_preset, combine_reports
 
 class DoorstepProcessor:
     preset = None
@@ -36,3 +36,9 @@ class DoorstepProcessor:
 
     def compile_report(self, filename=None, metadata=None):
         return self._report.compile(filename, metadata)
+
+    def get_report(self):
+        return self._report
+
+    def set_report(self, report):
+        self._report = report

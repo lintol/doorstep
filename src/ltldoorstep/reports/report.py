@@ -299,6 +299,23 @@ def properties_from_report(report):
         'headers': table['headers']
     }
 
+def combine_reports(*reports, base=None):
+    if base is None:
+        presets = {report.preset for report in reports if report.preset}
+
+        if len(presets) != 1:
+            raise RuntimeError(
+                _("Report combining can only be performed on reports with the same 'preset' property")
+            )
+        preset = list(presets)[0]
+        rcls = get_report_class_from_preset(preset)
+        base = rcls(None, None)
+
+    for report in reports:
+        base.update(report)
+
+    return base
+
 
 from .geojson import GeoJSONReport
 from .tabular import TabularReport

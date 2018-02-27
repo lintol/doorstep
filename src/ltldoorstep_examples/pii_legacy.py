@@ -15,10 +15,10 @@ import pandas as p
 from dask.threaded import get
 import sys
 from ltldoorstep.processor import DoorstepProcessor
-from nltk.tag.stanford import CoreNLPNERTagger
+from nltk.tag.stanford import StanfordNERTagger
 from nltk.tokenize.treebank import TreebankWordTokenizer
 from nltk.tokenize import word_tokenize
-from ltldoorstep.reports.report import TabularReport
+from ltldoorstep.reports.report import TabularReport, combine_reports
 import subprocess
 import time
 import os
@@ -32,61 +32,35 @@ pii_details = {
     'O': 'organization'
 }
 
-@contextmanager
-def run_nlp_server():
-    root = os.environ['STANFORD_MODELS']
-    jar_prefixes = {'stanford-corenlp', 'slf4j'}
-    class_path = ':'.join([
-        os.path.join(root, jar)
-        for jar in os.listdir(root)
-        if jar.endswith('.jar')
-    ])
-    command = [
-        'java',
-        '-mx1024m',
-        '-cp',
-        '"%s"' % class_path,
-        'edu.stanford.nlp.pipeline.StanfordCoreNLPServer',
-        '-port',
-        '9000',
-        '-timeout',
-        '10000',
-        '-loadClassifier',
-        'edu/stanford/nlp/models/ner/english.all.3class.distsim.crf.ser.gz'
-    ]
-
-    env = {k: v for k, v in os.environ.items() if k in ('CLASSPATH')}
-
-    nlp_process = subprocess.Popen(command, env=env, stdout=sys.stdout, stderr=sys.stdout)
-
-    s = socket.socket()
-    s.settimeout(30)
-    for __ in range(6):
-        try:
-            s.connect(('localhost', 9000))
-        except socket.error:
-            time.sleep(5)
-        else:
-            break
-    s.close()
-
-    yield nlp_process
-    nlp_process.kill()
-
 
 def check_regex(df, rprt, rx, code, error_message):
+    print(_("Regex %s starting") % code)
     for rix, (__, row) in enumerate(df.iterrows()):
         for cix, (__, cell) in enumerate(row.iteritems()):
             if rx.match(str(cell)):
                 rprt.add_issue(
                     logging.INFO,
                     'check_regex:%s' % code,
-                    _("Possible IP found"),
+                    error_message,
                     row_number=rix,
                     column_number=cix,
                     error_data=None
                 )
+        print(rix)
+    print(_("Regex %s done") % code, flush=True)
     return rprt
+
+def check_mac(df, rprt):
+    rx = r'((\d|([a-f]|[A-F])){2}:){5}(\d|([a-f]|[A-F])){2}'
+    return check_regex(df, rprt, re.compile(rx), 'mac-address', _("Possible MAC address found"))
+
+def check_postcodes(df, rprt):
+    rx = r'([Gg][Ii][Rr] 0[Aa]{2})|((([A-Za-z][0-9]{1,2})|(([A-Za-z][A-Ha-hJ-Yj-y][0-9]{1,2})|(([A-Za-z][0-9][A-Za-z])|([A-Za-z][A-Ha-hJ-Yj-y][0-9]?[A-Za-z])))) ?[0-9][A-Za-z]{2})'
+    return check_regex(df, rprt, re.compile(rx), 'uk-postcode', _("Possible UK postcode found"))
+
+def check_email(df, rprt):
+    rx = r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,63}'
+    return check_regex(df, rprt, re.compile(rx), 'email', _("Possible email address found"))
 
 def check_ips(df, rprt):
     rx = r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
@@ -94,30 +68,25 @@ def check_ips(df, rprt):
 
 
 def check_nltk(df, rprt):
-    with run_nlp_server() as server_process:
-        ner = CoreNLPNERTagger()
+    ner = StanfordNERTagger('classifiers/english.all.3class.distsim.crf.ser.gz')
 
-        tokenizer = TreebankWordTokenizer()
-        tokens = []
-        cells = []
+    tokenizer = TreebankWordTokenizer()
+    tokens = []
+    cells = []
 
-        for rix, row in df.iterrows():
-            for cix, cell in row.iteritems():
-                try:
-                    words = tokenizer.tokenize(cell)
-                except TypeError:
-                    pass
-                else:
-                    tokens.append(words)
-                    cells.append((rix, cix))
-
-        for __ in range(5):
+    print("%d rows" % len(df.index))
+    for rix, row in df.iterrows():
+        for cix, cell in row.iteritems():
             try:
-                tags = ner.tag_sents(tokens)
-            except requests.exceptions.ReadTimeout:
+                words = tokenizer.tokenize(cell)
+            except TypeError:
                 pass
             else:
-                break
+                tokens.append(words)
+                cells.append((rix, cix))
+        print("%d rows complete" % rix, flush=True)
+
+    tags = ner.tag_sents(tokens)
 
     for ix, pairs in zip(cells, tags):
         analysis = {}
@@ -135,7 +104,7 @@ def check_nltk(df, rprt):
             rprt.add_issue(
                 logging.INFO,
                 code,
-                _("Potential named entity found, tagged as %s") % ', '.join(analysis.keys()),
+                _("One or more potential named entities found, tagged as %s") % ', '.join(analysis.keys()),
                 row_number=row_number,
                 column_number=column_number,
                 error_data={
@@ -165,14 +134,23 @@ class PiiProcessor(DoorstepProcessor):
         #           and also pass the filename
         #  report_returned: Using return_report and loading csv file....
         #  output: This will be the output
+
         workflow = {
             'read': (p.read_csv, filename),
-            'ips': (check_ips, 'read', self._report),
-            'output': (check_nltk, 'read', 'ips')
+            'ips': (check_ips, 'read', self.make_report()),
+            'email': (check_email, 'read', self.make_report()),
+            'mac': (check_mac, 'read', self.make_report()),
+            'postcodes': (check_postcodes, 'read', self.make_report()),
+            'regex': (workflow_condense, 'ips', 'email', 'mac', 'postcodes'),
+            'nltk': (check_nltk, 'read', 'regex'),
+            'output': (lambda rprt: (None, rprt), 'nltk')
         }
 
         # Returns workflow dict
         return workflow
+
+def workflow_condense(base, *args):
+    return combine_reports(*args, base=base)
 
 processor = PiiProcessor.make
 

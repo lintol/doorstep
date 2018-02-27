@@ -41,6 +41,10 @@ This dataset is the (NI) Department for Communities list of [Protected Wrecks](h
 
 These datasets are derived from the (NI) Department for Infrastructure [maps of settlement limits](https://www.opendatani.gov.uk/dataset/settlement-boundary-data/resource/1f8450d1-b92d-4914-8cc9-15d9ac64d14c), taken from Area Plans, available under the [UK Open Governement License](http://reference.data.gov.uk/id/open-government-licence).
 
+### active-places-ni.csv
+
+This data is the Sport NI [Active Places NI - Sports Facilities Database](https://www.opendatani.gov.uk/dataset/active-places-ni-sports-facilities-database/resource/9615b5b6-3f11-4968-b337-f1dc1e9db828), available under the [UK Open Governement License](http://reference.data.gov.uk/id/open-government-licence).
+
 ## Tests
 
 To test processors, run:
