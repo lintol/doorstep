@@ -1,0 +1,6 @@
+{
+  "docker": {
+    "image": "lintol/ds-pii-legacy",
+    "revision": "latest"
+  }
+}

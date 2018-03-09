@@ -2,13 +2,14 @@ import colorama
 import logging
 import tabulate
 import json
+from .processor import Report
 
 
-LEVEL_MAPPING = {
-    logging.ERROR: 'errors',
-    logging.WARNING: 'warnings',
-    logging.INFO: 'info'
-}
+LEVEL_MAPPING = [
+    logging.ERROR,
+    logging.WARNING,
+    logging.INFO
+]
 
 class Printer:
     def __init__(self, debug=False, target=None):
@@ -48,18 +49,21 @@ class TermColorPrinter(Printer):
         general_output = []
         results = []
 
-        for log_level, log_key in LEVEL_MAPPING.items():
-            if log_key in result_sets['tables'][0]:
-                for result_set in result_sets['tables'][0][log_key]:
-                    item_str = str(result_set['item'])
-                    if len(item_str) > 40:
-                        item_str = item_str[:37] + '...'
-                    levels[log_level].append([
-                        result_set['item']['entity']['location'],
-                        result_set['code'],
-                        result_set['message'],
-                        item_str
-                    ])
+        report = Report.parse(result_sets)
+
+        for log_level in LEVEL_MAPPING:
+            for issue in report.get_issues(log_level):
+                item = issue.get_item()
+                item_str = str(item.definition)
+                if len(item_str) > 40:
+                    item_str = item_str[:37] + '...'
+                levels[log_level].append([
+                    issue.processor,
+                    str(item.location),
+                    issue.code,
+                    issue.message,
+                    item_str
+                ])
 
         output_sections = []
         if levels[logging.ERROR]:

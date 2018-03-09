@@ -8,6 +8,16 @@ from ltldoorstep.file import make_file_manager
 import asyncio
 import logging
 
+def get_engine(engine):
+    if ':' in engine:
+        engine, engine_options = engine.split(':')
+        sp = lambda x: (x.split('=') if '=' in x else (x, True))
+        engine_options = {k: v for k, v in map(sp, engine_options.split(','))}
+    else:
+        engine_options = {}
+
+    return engine, engine_options
+
 @click.group()
 @click.option('--debug/--no-debug', default=False)
 @click.option('-b', '--bucket', default=None)
@@ -33,6 +43,24 @@ def cli(ctx, debug, bucket, output, output_file):
     }
     gettext.install('ltldoorstep')
 
+@cli.command(name='engine-info')
+@click.argument('engine', 'engine to get information about')
+@click.pass_context
+def engine_info(ctx, engine=None):
+    if engine:
+        if engine in engines:
+            click.echo(_('Engine details:') + ' ' + engine + "\n")
+            config_help = engines[engine].config_help()
+            if config_help:
+                for setting, description in config_help.items():
+                    click.echo("%s:\n\t%s" % (setting, description))
+            else:
+                click.echo("No configuration settings for this engine")
+        else:
+            click.echo(_('Engine not known'))
+    else:
+        click.echo(_('Engines available:') + ' ' + ', '.join(engines))
+
 @cli.command()
 @click.pass_context
 def status(ctx):
@@ -47,15 +75,16 @@ def status(ctx):
 @cli.command()
 @click.argument('filename', 'data file to process')
 @click.argument('workflow', 'Python workflow module')
-@click.option('-e', '--engine', type=click.Choice(engines.keys()), required=True)
+@click.option('-e', '--engine', required=True)
 @click.option('-m', '--metadata', default=None)
 @click.pass_context
 def process(ctx, filename, workflow, engine, metadata):
     printer = ctx.obj['printer']
     bucket = ctx.obj['bucket']
 
+    engine, engine_options = get_engine(engine)
     click.echo(_("Engine: %s" % engine))
-    engine = engines[engine]()
+    engine = engines[engine](config=engine_options)
 
     if metadata is None:
         metadata = {}
@@ -70,15 +99,15 @@ def process(ctx, filename, workflow, engine, metadata):
     printer.print_output()
 
 @cli.command()
-@click.option('--engine', type=click.Choice(engines.keys()), required=True)
+@click.option('--engine', required=True)
 @click.option('--protocol', type=click.Choice(['http', 'wamp']), required=True)
 @click.pass_context
 def serve(ctx, engine, protocol):
     printer = ctx.obj['printer']
 
+    engine, engine_options = get_engine(engine)
     click.echo(_("Engine: %s" % engine))
-
-    engine = engines[engine]()
+    engine = engines[engine](config=engine_options)
 
     if protocol == 'http':
         from ltldoorstep.flask_server import launch_flask
@@ -92,14 +121,14 @@ def serve(ctx, engine, protocol):
 @cli.command()
 @click.argument('workflow', 'Python workflow module')
 @click.option('--url', required=True)
-@click.option('--engine', type=click.Choice(engines.keys()), required=True)
+@click.option('--engine', required=True)
 @click.pass_context
 def crawl(ctx, workflow, url, engine):
     printer = ctx.obj['printer']
 
+    engine, engine_options = get_engine(engine)
     click.echo(_("Engine: %s" % engine))
-
-    engine = engines[engine]()
+    engine = engines[engine](config=engine_options)
 
     metadata = {}
 

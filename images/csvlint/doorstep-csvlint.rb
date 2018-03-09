@@ -38,7 +38,30 @@ if validator.errors
        "row" => validator.data[error.row],
        "row-number" => error.row,
        "code" => "missing-value",
-       "column-number" => error.column
+       "column-number" => error.column,
+       "item" => {
+         "entity" => {
+           "location" => {
+             "row" => error.row,
+             "column" => error.column
+            },
+           "definition": {},
+           "type": "cell"
+         },
+         "properties" => {}
+       },
+       "context" => [
+         {
+           "entity" => {
+             "type" => "row",
+             "location" => {
+               "row" => error.row
+              },
+             "definition": {}
+           },
+           "properties" => validator.data[error.row]
+         }
+       ]
     }
   }
 end
@@ -46,21 +69,24 @@ end
 report = {
   "error-count" => errors.length(),
   "valid" => errors.empty?,
-  "row-count" => 5,
+  "row-count" => validator.row_count,
   "headers" => validator.data[0],
   "source" => data_file,
-  "time" => 0.016,
+  "time" => 0.0,
   "tables" => [
      {
-        "format" => "csv",
+        "headers" => validator.data[0],
+        "format" => validator.extension,
+        "row-count" => validator.row_count,
+        "filename" => data_file,
         "errors" => errors,
         "preset" => "table",
         "warnings" => [],
         "table-count" => 1,
-        "time" => 0.02,
+        "time" => 0.0,
         "valid" => errors.empty?,
         "scheme" => "file",
-        "encoding" => "utf-8",
+        "encoding" => validator.encoding,
         "schema" => nil,
         "error-count" => errors.length()
      }

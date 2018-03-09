@@ -57,13 +57,16 @@ setup(
         'tabulate',
         'flask',
         'flask_restful',
+        'fuzzywuzzy',
         'unicodeblock',
         'goodtables',
         'pypachy',
         'pandas',
         'boto3',
         'autobahn',
-        'ckanapi'
+        'ckanapi',
+        'requests',
+        'docker'
     ],
     include_package_data=True,
     tests_require=[

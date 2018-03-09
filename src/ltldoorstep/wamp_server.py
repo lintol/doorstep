@@ -46,10 +46,12 @@ class ProcessorResource():
     def __init__(self, engine):
         self._engine = engine
 
-    async def post(self, filename, content, metadata, session):
-        module_name = os.path.splitext(os.path.basename(filename))[0]
+    async def post(self, modules, metadata, session):
+        processors = {}
+        for module, content in modules.items():
+            processors[module] = content.encode('utf-8')
 
-        return self._engine.add_processor(module_name, content.encode('utf-8'), metadata, session)
+        return self._engine.add_processor(processors, metadata, session)
 
 class DataResource():
     def __init__(self, engine):
