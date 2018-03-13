@@ -16,12 +16,13 @@ import geopandas as gp
 import csv
 import sys
 import os
-from ltldoorstep.processor import DoorstepProcessor, geojson_add_issue, compile_report, set_properties, add_supplementary
+from ltldoorstep.processor import DoorstepProcessor
+from ltldoorstep.reports import report
 
 DEFAULT_OUTLINE = 'example/data/osni-ni-outline-lowres.geojson'
 
 
-def find_ni_data(first_file, metadata=None):
+def find_ni_data(first_file, rprt, metadata=None):
     ni_data = DEFAULT_OUTLINE
     if metadata and 'definition' in metadata:
         if metadata and \
@@ -36,7 +37,7 @@ def find_ni_data(first_file, metadata=None):
 
             boundary = metadata['supplementary'][boundary_key]
             ni_data = boundary['location']
-            add_supplementary('boundary', boundary['source'], 'Boundary against which points are tested')
+            rprt.add_supplementary('boundary', boundary['source'], 'Boundary against which points are tested')
 
             if not os.path.exists(ni_data):
                 raise RuntimeError("Boundary not found on filesystem")
@@ -45,7 +46,7 @@ def find_ni_data(first_file, metadata=None):
         # Setting up data that will be compared to the dataset/file being passed in
         data_to_compare = gp.GeoDataFrame.from_features(json.load(data_file)['features'])
 
-    set_properties(preset='geojson', headers=list(data_to_compare.columns))
+    rprt.set_properties(preset='geojson', headers=list(data_to_compare.columns))
     # If csv file has these attributes then...
     if 'geometry' in data_to_compare:
 
@@ -69,9 +70,9 @@ def find_ni_data(first_file, metadata=None):
                 props = dict(point)
                 # removing key 'geometry'
                 del props['geometry']
+
                 # calling Report object method add_issue
-                r.add_issue(
-                    'lintol/boundary-checker-improved:1',
+                rprt.add_issue(
                     logging.ERROR,
                     'locations-not-found',
                     _("This location is not within the given boundary"),
@@ -82,12 +83,14 @@ def find_ni_data(first_file, metadata=None):
                 )
     # If the file does not have any location data....
     else:
-        r.add_issue(
+        rprt.add_issue(
             'lintol/boundary-checker-improved:1',
             logging.WARNING,
             'no-location-data-found',
             _("No location data found! Please make sure that you have read the right file")
         )
+
+    return rprt
 
 class BoundaryCheckerImprovedProcessor(DoorstepProcessor):
     @staticmethod
@@ -96,7 +99,7 @@ class BoundaryCheckerImprovedProcessor(DoorstepProcessor):
 
     def get_workflow(self, filename, metadata={}):
         workflow = {
-            'output': (find_ni_data, self._report, filename, metadata)
+            'output': (find_ni_data, filename, self.make_report(), metadata)
         }
         return workflow
 

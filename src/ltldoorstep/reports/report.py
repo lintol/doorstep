@@ -56,13 +56,16 @@ class ReportItemLiteral(ReportItem):
         return self.literal
 
 class ReportIssue:
-    def __init__(self, level, item, context, processor, code, message, error_data={}):
+    def __init__(self, level, item, context, processor, code, message, error_data=None):
         self.level = level
         self.processor = processor
         self.code = code
         self.message = message
         self.item = item
         self.context = context
+
+        if error_data is None:
+            error_data = {}
         self.error_data = error_data
 
     def __str__(self):
@@ -76,7 +79,6 @@ class ReportIssue:
 
     @classmethod
     def parse(cls, level, data):
-        print(data)
         return cls(
             level=level,
             processor=data['processor'],
@@ -122,7 +124,7 @@ class Report:
     def __repr__(self):
         return '(|Report: %s|)' % str(self)
 
-    def __init__(self, processor, info, filename='', metadata={}, headers=None, encoding='utf-8', time=0., row_count=None, supplementary=[], issues=None):
+    def __init__(self, processor, info, filename='', metadata=None, headers=None, encoding='utf-8', time=0., row_count=None, supplementary=None, issues=None):
         if issues is None:
             self.issues = {
                 logging.ERROR: [],
@@ -131,6 +133,11 @@ class Report:
             }
         else:
             self.issues = issues
+
+        if metadata is None:
+            metadata = {}
+        if supplementary is None:
+            supplementary = []
 
         self.processor = processor
         self.info = info
@@ -145,7 +152,6 @@ class Report:
             'preset': self.get_preset(),
             'headers': headers
         }
-        print('props', self.properties)
 
     def get_issues(self, level=None):
         if level:
@@ -188,6 +194,7 @@ class Report:
             'fileType': table['format']
         }
         supplementary = dictionary['supplementary']
+        logging.warn(supplementary)
         row_count = table['row-count']
         time = table['time']
         encoding = table['encoding']
@@ -213,13 +220,10 @@ class Report:
             self.issues[level] += issues
 
         self.supplementary += additional.supplementary
-        print(self.properties, additional.properties)
 
         for prop in ('row-count', 'encoding', 'headers', 'preset'):
             if self.properties[prop] is None:
                 self.properties[prop] = additional.properties[prop]
-
-        print(self.properties)
 
     def compile(self, filename=None, metadata=None):
         report = {k: [item.render() for item in v] for k, v in self.issues.items()}
@@ -243,6 +247,8 @@ class Report:
 
         valid = not bool(report[logging.ERROR])
 
+        logging.warn('SUPP')
+        logging.warn(supplementary)
         return {
             'supplementary': supplementary,
             'error-count': sum([len(r) for r in report.values()]),
@@ -272,6 +278,8 @@ class Report:
         }
 
     def add_supplementary(self, typ, source, name):
+        logging.warn('Adding supplementary')
+        logging.warn((typ, source, name))
         self.supplementary.append({
             'type': typ,
             'source': source,

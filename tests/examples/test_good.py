@@ -1,17 +1,18 @@
 import os
 from dask.threaded import get
 
-from ltldoorstep_examples.good import GoodTablesProcessor
+from ltldoorstep_examples.good import processor
 
 def test_good_on_bad():
-    path = os.path.join('data', 'bad.csv')
-    good = GoodTablesProcessor()
+    path = os.path.join(os.path.dirname(__file__), 'data', 'awful.csv')
+    good = processor()
     workflow = good.get_workflow(path)
-    results = get(workflow, 'output')
+    results = get(workflow, 'output').compile()
 
-    assert len(results) == 1
+    errors = results['tables'][0]['errors']
+    print(errors)
+    assert len(errors) == 3
 
-    report = results[0]
-    assert 'goodtables:error-count' not in report
-    assert report['goodtables:table-count'][2] == 1
-    assert report['goodtables:formats'][2] == 'csv'
+    report = errors[0]
+    print(report)
+    assert report['code'] == 'duplicate-header'

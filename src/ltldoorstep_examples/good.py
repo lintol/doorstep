@@ -2,14 +2,14 @@ from goodtables import validate
 import sys
 from dask.threaded import get
 import logging
-from ltldoorstep.processor import DoorstepProcessor, tabular_add_issue, set_properties
+from ltldoorstep.processor import DoorstepProcessor
 
 class GoodTablesProcessor(DoorstepProcessor):
     preset = 'tabular'
     code = 'frictionlessdata/goodtables-py:1'
     description = _("Processor wrapping Frictionless Data's Goodtables")
 
-    def structure_report(report):
+    def structure_report(self, report):
         results = {}
 
         levels = {
@@ -18,15 +18,15 @@ class GoodTablesProcessor(DoorstepProcessor):
             'informations': logging.INFO
         }
 
+        table = report['tables'][0]
+        self._report.set_properties(
+            row_count=table['row-count'],
+            headers=table['headers']
+        )
         for level, log_level in levels.items():
-            table = report['tables'][0]
-            set_properties(
-                row_count=table['row-count'],
-                headers=table['headers']
-            )
             if level in table and table[level]:
                 for error in table[level]:
-                    tabular_add_issue(
+                    self._report.add_issue(
                         log_level,
                         error['code'],
                         error['message'],
@@ -35,17 +35,17 @@ class GoodTablesProcessor(DoorstepProcessor):
                         row=error['row']
                     )
 
-        return report
+        return self._report
 
     def get_workflow(self, filename, metadata={}):
         workflow = {
             'validate': (validate, filename),
-            'output': (structure_report, 'validate')
+            'output': (self.structure_report, 'validate')
         }
 
         return workflow
 
-processor = GoodTablesProcessor
+processor = GoodTablesProcessor.make
 
 if __name__ == "__main__":
     argv = sys.argv

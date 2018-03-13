@@ -1,11 +1,11 @@
 import os
 from dask.threaded import get
-from ltldoorstep_examples.registers import RegisterCountryProcessor
+from ltldoorstep_examples.registers import processor
 import pytest
 
 def testing_register_pass():
-    path = os.path.join('data', 'registers-sample.csv')
-    registers = RegisterCountryProcessor()
+    path = os.path.join(os.path.dirname(__file__), 'data', 'registers-sample.csv')
+    registers = processor()
     workflow = registers.get_workflow(path)
     results = get(workflow, 'output')
 
