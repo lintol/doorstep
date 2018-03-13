@@ -20,7 +20,7 @@ unicode_category_major = {
 }
 
 
-def check_character_blocks(csv):
+def check_character_blocks(csv, rprt):
     # All characters are Latinate (unicodedata.normalize('NFKD')[0] is Latin)
     string_csv = csv.select_dtypes(include=['object'])
 
@@ -30,14 +30,14 @@ def check_character_blocks(csv):
 
     if None in block_set:
         block_set.remove(None)
-        report.TablularReport.add_issue(
+        rprt.add_issue(
             'lintol-csv-checker',
             logging.WARNING,
             'unknown-category',
             ("Unknown character type found")
         )
 
-    report.TablularReport.add_issue(
+    rprt.add_issue(
         'lintol-csv-checker',
         logging.WARNING,
         'blocks-found',
@@ -45,7 +45,7 @@ def check_character_blocks(csv):
 
     )
 
-def check_character_categories(csv):
+def check_character_categories(csv, rprt):
     # All characters are Latinate (unicodedata.normalize('NFKD')[0] is Latin)
     string_csv = csv.select_dtypes(include=['object'])
     categories = set()
@@ -53,7 +53,7 @@ def check_character_categories(csv):
     string_csv.apply(np.vectorize(lambda cell: categories.update({unicodedata.category(c) for c in cell})))
 
     categories_found = [unicode_category_major[c[0]] for c in categories]
-    report.TablularReport.add_issue(
+    rprt.add_issue(
         'lintol/csv-checker:1',
         logging.INFO,
         'categories-found',
@@ -61,7 +61,7 @@ def check_character_categories(csv):
 
     )
 
-def check_std_dev():
+def check_std_dev(df, rprt):
     # Standard Deviation is non-negative
     names_for_standard_deviation = [
         r'std[. ]*dev',
@@ -79,12 +79,12 @@ def check_std_dev():
         'check_std_dev:neg-std-dev': ('Rows with negative Standard Deviation', logging.WARNING, bad_rows)
     }
 
-def check_ids_unique(csv):
+def check_ids_unique(csv, rprt):
     # IDs are unique
     ids = csv['ID']
     min_duplicates = len(set(ids)) < len(ids)
     if min_duplicates > 0:
-        report.TablularReport.add_issue(
+        rprt.add_issue(
             'lintol/csv-checker:1',
             logging.WARNING,
             'check-ids-unique:ids-not-unique',
@@ -92,33 +92,48 @@ def check_ids_unique(csv):
 
         )
 
-def check_ids_surjective(csv):
+def set_properties(df, rprt):
+    rprt.set_properties(headers=list(df.columns))
+    return rprt
+
+def check_ids_surjective(csv, rprt):
     # IDs are surjective onto their range
     ids = csv['ID']
     unique_ids = len(set(ids))
     expected_ids = max(ids) - min(ids) + 1
     if expected_ids != unique_ids:
-        report.TablularReport.add_issue(
+        rprt.add_issue(
             'lintol:csv-checker:1',
             logging.WARNING,
             'check-ids-surjective:not-surjective',
             ("IDs are missing, %d missing between %d and %d") % (expected_ids - unique_ids, min(ids), max(ids)),
+            error_data={
+                'missing-count': expected_ids - unique_ids,
+                'lowest-id': min(ids),
+                'highest-id': max(ids)
+            }
 
         )
 
 class CsvCheckerProcessor(DoorstepProcessor):
-    def make_report(self):
-        return report.TablularReport('CSV Checker Processor', 'Info from CSV Checker')
+    preset = 'tabular'
+    code = 'lintol-csv-custom-example:1'
+    description = _("CSV Checker Processor")
+
     def get_workflow(self, filename, metadata={}):
         workflow = {
             'load-csv': (pd.read_csv, filename),
-            'step-A': (check_ids_surjective, 'load-csv'),
-            'step-B': (check_ids_unique, 'load-csv'),
-            'step-C': (check_character_categories, 'load-csv'),
-            'step-D': (check_character_blocks, 'load-csv'),
-            'output': (list, ['step-A', 'step-B', 'step-C', 'step-D'], self._report)
+            'step-A': (check_ids_surjective, 'load-csv', self.make_report()),
+            'step-B': (check_ids_unique, 'load-csv', self.make_report()),
+            'step-C': (check_character_categories, 'load-csv', self.make_report()),
+            'step-D': (check_character_blocks, 'load-csv', self.make_report()),
+            'condense': (workflow_condense, 'step-A', 'step-B', 'step-B', 'step-D'),
+            'output': (set_properties, 'read', 'condense')
         }
         return workflow
+
+def workflow_condense(base, *args):
+    return combine_reports(*args, base=base)
 
 processor = CsvCheckerProcessor
 

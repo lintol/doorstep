@@ -5,6 +5,10 @@ import logging
 from ltldoorstep.processor import DoorstepProcessor, tabular_add_issue, set_properties
 
 class GoodTablesProcessor(DoorstepProcessor):
+    preset = 'tabular'
+    code = 'frictionlessdata/goodtables-py:1'
+    description = _("Processor wrapping Frictionless Data's Goodtables")
+
     def structure_report(report):
         results = {}
 
@@ -31,11 +35,14 @@ class GoodTablesProcessor(DoorstepProcessor):
                         row=error['row']
                     )
 
+        return report
+
     def get_workflow(self, filename, metadata={}):
         workflow = {
             'validate': (validate, filename),
             'output': (structure_report, 'validate')
         }
+
         return workflow
 
 processor = GoodTablesProcessor

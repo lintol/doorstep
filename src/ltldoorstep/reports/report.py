@@ -76,6 +76,7 @@ class ReportIssue:
 
     @classmethod
     def parse(cls, level, data):
+        print(data)
         return cls(
             level=level,
             processor=data['processor'],
@@ -121,7 +122,7 @@ class Report:
     def __repr__(self):
         return '(|Report: %s|)' % str(self)
 
-    def __init__(self, processor, info, filename='', metadata={}, headers=[], encoding='utf-8', time=0., row_count=None, supplementary=[], issues=None):
+    def __init__(self, processor, info, filename='', metadata={}, headers=None, encoding='utf-8', time=0., row_count=None, supplementary=[], issues=None):
         if issues is None:
             self.issues = {
                 logging.ERROR: [],
@@ -144,6 +145,7 @@ class Report:
             'preset': self.get_preset(),
             'headers': headers
         }
+        print('props', self.properties)
 
     def get_issues(self, level=None):
         if level:
@@ -211,6 +213,13 @@ class Report:
             self.issues[level] += issues
 
         self.supplementary += additional.supplementary
+        print(self.properties, additional.properties)
+
+        for prop in ('row-count', 'encoding', 'headers', 'preset'):
+            if self.properties[prop] is None:
+                self.properties[prop] = additional.properties[prop]
+
+        print(self.properties)
 
     def compile(self, filename=None, metadata=None):
         report = {k: [item.render() for item in v] for k, v in self.issues.items()}
@@ -269,10 +278,10 @@ class Report:
             'name': name
         })
 
-    def set_properties(self, properties):
+    def set_properties(self, **properties):
         for arg in self.properties:
             if arg in properties:
-                properties[arg] = self.properties[arg]
+                self.properties[arg] = properties[arg]
 
 
     def add_issue(self, log_level, code, message, item=None, error_data=None):

@@ -39,7 +39,7 @@ def check_regex(df, rprt, rx, code, error_message):
         for cix, (__, cell) in enumerate(row.iteritems()):
             if rx.match(str(cell)):
                 rprt.add_issue(
-                    logging.INFO,
+                    logging.ERROR,
                     'check_regex:%s' % code,
                     error_message,
                     row_number=rix,
@@ -65,6 +65,11 @@ def check_email(df, rprt):
 def check_ips(df, rprt):
     rx = r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
     return check_regex(df, rprt, re.compile(rx), 'ip', _("Possible IP address found"))
+
+
+def set_properties(df, rprt):
+    rprt.set_properties(headers=list(df.columns))
+    return rprt
 
 
 def check_nltk(df, rprt):
@@ -102,7 +107,7 @@ def check_nltk(df, rprt):
             row_number = df.index.get_loc(ix[0])
             column_number = df.columns.get_loc(ix[1])
             rprt.add_issue(
-                logging.INFO,
+                logging.ERROR,
                 code,
                 _("One or more potential named entities found, tagged as %s") % ', '.join(analysis.keys()),
                 row_number=row_number,
@@ -143,7 +148,8 @@ class PiiProcessor(DoorstepProcessor):
             'postcodes': (check_postcodes, 'read', self.make_report()),
             'regex': (workflow_condense, 'ips', 'email', 'mac', 'postcodes'),
             'nltk': (check_nltk, 'read', 'regex'),
-            'output': (lambda rprt: (None, rprt), 'nltk')
+            'properties': (set_properties, 'read', 'nltk'),
+            'output': (lambda rprt: (None, rprt), 'properties')
         }
 
         # Returns workflow dict

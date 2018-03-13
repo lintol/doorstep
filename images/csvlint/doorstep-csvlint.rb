@@ -57,9 +57,9 @@ if validator.errors
              "location" => {
                "row" => error.row
               },
-             "definition": {}
+             "definition": validator.data[error.row]
            },
-           "properties" => validator.data[error.row]
+           "properties" => {}
          }
        ]
     }
@@ -71,17 +71,18 @@ report = {
   "valid" => errors.empty?,
   "row-count" => validator.row_count,
   "headers" => validator.data[0],
-  "source" => data_file,
+  "filename" => data_file,
+  "supplementary" => [],
+  "preset" => "tabular",
   "time" => 0.0,
   "tables" => [
      {
         "headers" => validator.data[0],
         "format" => validator.extension,
         "row-count" => validator.row_count,
-        "filename" => data_file,
         "errors" => errors,
-        "preset" => "table",
         "warnings" => [],
+        "informations" => [],
         "table-count" => 1,
         "time" => 0.0,
         "valid" => errors.empty?,
