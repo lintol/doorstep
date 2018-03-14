@@ -32,12 +32,17 @@ translations = {
 
 if validator.errors
   errors = validator.errors.map { |error|
+    if error.row
+      row = validator.data[error.row - 1]
+    else
+      row = nil
+    end
     {
        "processor" => "theodi/csvlint.rb:1",
        "message" => "Row #{error.row}, #{error.column}: #{translations[error.type]}",
-       "row" => validator.data[error.row],
+       "row" => row,
        "row-number" => error.row,
-       "code" => "missing-value",
+       "code" => error.type,
        "column-number" => error.column,
        "item" => {
          "entity" => {
@@ -57,7 +62,7 @@ if validator.errors
              "location" => {
                "row" => error.row
               },
-             "definition": validator.data[error.row]
+             "definition": row
            },
            "properties" => {}
          }
