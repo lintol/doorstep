@@ -158,26 +158,28 @@ class DockerEngine(Engine):
         }
         for processor in processors:
             pc = processor['content']
-            if pc and processor['filename']:
+            if not pc:
+                pc = ''
+            if processor['filename']:
                 if type(pc) == bytes:
                     pc = pc.decode('utf-8')
                 content[processor['filename']] = pc
 
         with tempfile.TemporaryDirectory('-doorstep-docker-engine-storage') as mounted_dir, make_file_manager(content=content) as file_manager:
             data_file = file_manager.get(data_filename)
+            out_root = os.path.join(mounted_dir, 'out')
+            data_root = os.path.join(mounted_dir, 'data')
+            os.makedirs(data_root)
+            os.makedirs(os.path.join(out_root, 'raw'))
 
             report_files = []
             for processor in processors:
                 processor_root = os.path.join(mounted_dir, 'processors', processor['name'])
-                data_root = os.path.join(mounted_dir, 'data')
-                out_root = os.path.join(mounted_dir, 'out')
                 metadata = processor['metadata']
 
                 os.makedirs(processor_root)
-                os.makedirs(data_root)
-                os.makedirs(os.path.join(out_root, 'raw'))
 
-                if 'supplementary' in metadata:
+                if 'supplementary' in metadata and metadata['supplementary']:
                     supplementary_internal = {}
                     for i, (key, supplementary) in enumerate(metadata['supplementary'].items()):
                         error = _("(unknown error)")
@@ -217,6 +219,7 @@ class DockerEngine(Engine):
                 docker_revision = 'latest'
                 lang = 'C.UTF-8' # TODO: more sensible default
 
+                print(metadata)
                 if 'definition' in metadata:
                     if 'docker' in metadata['definition']:
                         if 'image' in metadata['definition']['docker']:

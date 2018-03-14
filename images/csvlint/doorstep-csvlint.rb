@@ -32,12 +32,17 @@ translations = {
 
 if validator.errors
   errors = validator.errors.map { |error|
+    if error.row
+      row = validator.data[error.row - 1]
+    else
+      row = nil
+    end
     {
        "processor" => "theodi/csvlint.rb:1",
        "message" => "Row #{error.row}, #{error.column}: #{translations[error.type]}",
-       "row" => validator.data[error.row],
+       "row" => row,
        "row-number" => error.row,
-       "code" => "missing-value",
+       "code" => error.type,
        "column-number" => error.column,
        "item" => {
          "entity" => {
@@ -57,9 +62,9 @@ if validator.errors
              "location" => {
                "row" => error.row
               },
-             "definition": {}
+             "definition": row
            },
-           "properties" => validator.data[error.row]
+           "properties" => {}
          }
        ]
     }
@@ -71,17 +76,18 @@ report = {
   "valid" => errors.empty?,
   "row-count" => validator.row_count,
   "headers" => validator.data[0],
-  "source" => data_file,
+  "filename" => data_file,
+  "supplementary" => [],
+  "preset" => "tabular",
   "time" => 0.0,
   "tables" => [
      {
         "headers" => validator.data[0],
         "format" => validator.extension,
         "row-count" => validator.row_count,
-        "filename" => data_file,
         "errors" => errors,
-        "preset" => "table",
         "warnings" => [],
+        "informations" => [],
         "table-count" => 1,
         "time" => 0.0,
         "valid" => errors.empty?,

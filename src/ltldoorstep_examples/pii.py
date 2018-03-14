@@ -167,7 +167,7 @@ class PiiProcessor(DoorstepProcessor):
         #  output: This will be the output
         workflow = {
             'read': (p.read_csv, filename),
-            'ips': (check_ips, 'read', self._report),
+            'ips': (check_ips, 'read', self.make_report()),
             'output': (check_nltk, 'read', 'ips')
         }
 

@@ -1,6 +1,6 @@
 import os
 from dask.threaded import get
-from ltldoorstep import report
+from ltldoorstep.reports import report
 import logging
 from ltldoorstep import processor
 import pytest
@@ -10,14 +10,22 @@ from ltldoorstep_examples.boundary_checker_impr import BoundaryCheckerImprovedPr
 
 
 def test_boundary_checker_on_pedestrian_crossings():
-    path = os.path.join('data', 'pedestriancrossing.geojson')
+    path = os.path.join(os.path.dirname(__file__), 'data', 'pedestriancrossing.geojson')
     boundary_checker = BoundaryCheckerImprovedProcessor()
-    workflow = boundary_checker.get_workflow(path)
-    get(workflow, 'output')
-    results = boundary_checker.compile_report()
+
+    ni_data = os.path.join(os.path.dirname(__file__), 'data', 'osni-ni-outline-lowres.geojson')
+    metadata = {
+        'definition': {},
+        'supplementary': {'test.geojson': {'location': ni_data, 'source': 'http://example.com/ni_data.geojson'}},
+        'configuration': {'boundary': '$->test.geojson'}
+    }
+
+    workflow = boundary_checker.get_workflow(path, metadata)
+    report = get(workflow, 'output')
+    results = report.compile()
     assert results is not None
     assert type(results) is dict
-    assert len(results) == 7
+    assert len(results) == 9
 
     report = results['tables'][0]['errors']
     assert report is not None

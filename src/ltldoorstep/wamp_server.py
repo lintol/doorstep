@@ -1,6 +1,7 @@
 from autobahn.asyncio.wamp import ApplicationRunner, ApplicationSession
 import asyncio
 import json
+import logging
 from autobahn.wamp.types import RegisterOptions
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -51,6 +52,8 @@ class ProcessorResource():
         for module, content in modules.items():
             processors[module] = content.encode('utf-8')
 
+        logging.warn(metadata)
+
         return self._engine.add_processor(processors, metadata, session)
 
 class DataResource():
@@ -98,6 +101,7 @@ class DoorstepComponent(ApplicationSession):
     async def onJoin(self, details):
         async def get_session_pair():
             session = self.make_session()
+            print(_("Engaging for session %s") % session['name'])
 
             # Kick off observer coro
             __, monitor_output = await self._engine.monitor_pipeline(session)

@@ -15,6 +15,7 @@ class TempFileManager:
 
         for filename, body in content.items():
             local_filename = os.path.join(self._local, os.path.basename(filename))
+            print(local_filename)
             with open(local_filename, 'w') as file_obj:
                 file_obj.write(body)
 

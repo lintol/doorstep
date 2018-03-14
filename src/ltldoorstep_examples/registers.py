@@ -18,11 +18,12 @@ from fuzzywuzzy import process, fuzz
 import ltldoorstep
 print(ltldoorstep.__dict__)
 from ltldoorstep.processor import DoorstepProcessor
+from ltldoorstep.reports import report
 
 
 EXCLUDE_EMPTY_MATCHES = True
 PROVIDE_SUGGESTIONS = True
-DEFAULT_REGISTER_LOCATION = 'register-countries.json'
+DEFAULT_REGISTER_LOCATION = os.path.join(os.path.dirname(__file__), '../..', 'tests', 'examples', 'data', 'register-countries.json')
 
 class RegisterCountryItem:
     matches = ()
@@ -129,7 +130,7 @@ def gov_countries_register_checker(data):
     issues = {k: issue for  k, issue in issues.items() if issue}
 
     mismatching_columns = {k: issue[1] for k, issue in issues.items() if issue[1]}
-    report.TabularReport.add_issue(
+    self._report.add_issue(
         'lintol/gov-uk-register-countries:1',
         logging.WARNING,
         'country-mismatch',
@@ -139,7 +140,7 @@ def gov_countries_register_checker(data):
     )
 
     checked_columns = {k: 'country-register-{col}'.format(col=issue[0]) for k, issue in issues.items()}
-    report.TabularReport.add_issue(
+    self._report.add_issue(
         'lintol/gov-uk-register-countries:1',
         logging.INFO,
         'country-mismatch',
@@ -163,11 +164,11 @@ class RegisterCountryProcessor(DoorstepProcessor):
         workflow = {
             'load_csv' : (p.read_csv, filename),
             'gov_countries_register_checker' : (gov_countries_register_checker, 'load_csv'),
-            'output': (list, self._report, 'gov_countries_register_checker')
+            'output': (lambda:self._report, 'gov_countries_register_checker')
         }
         return workflow
 
-processor = RegisterCountryProcessor
+processor = RegisterCountryProcessor.make
 
 if __name__ == "__main__":
     argv = sys.argv

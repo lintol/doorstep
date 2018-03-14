@@ -14,3 +14,4 @@ geojson_utils
 geopandas
 requests
 shapely
+fuzzywuzzy

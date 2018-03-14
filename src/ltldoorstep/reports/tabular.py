@@ -1,4 +1,5 @@
 from .report import Report, ReportItem
+import itertools
 
 class TabularReport(Report):
 
@@ -17,6 +18,10 @@ class TabularReport(Report):
                 typ = 'Column'
             else:
                 typ = 'Global'
+
+        if row and self.properties['headers']:
+            row_pairs = itertools.zip_longest(self.properties['headers'], row)
+            row = {k: v for k, v in row_pairs if k is not None}
 
         item = ReportItem(typ, {'row': row_number, 'column': column_number}, None, row)
 
