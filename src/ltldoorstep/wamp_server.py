@@ -127,8 +127,8 @@ class DoorstepComponent(ApplicationSession):
         await self.wrap_register('report.get', self._resource_report.get)
 
 
-def launch_wamp(engine):
-    runner = ApplicationRunner(url='ws://localhost:8080/ws', realm='realm1')
+def launch_wamp(engine, router='localhost:8080'):
+    runner = ApplicationRunner(url=('ws://%s/ws' % router), realm='realm1')
 
     with SessionSet(engine) as sessions:
         runner.run(lambda *args, **kwargs: DoorstepComponent(engine, sessions, *args, **kwargs))
