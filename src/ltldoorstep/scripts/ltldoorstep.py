@@ -44,16 +44,18 @@ def cli(ctx, debug, bucket, output, output_file):
     gettext.install('ltldoorstep')
 
 @cli.command(name='engine-info')
-@click.argument('engine', 'engine to get information about')
+@click.argument('engine', 'engine to get information about', required=False)
 @click.pass_context
 def engine_info(ctx, engine=None):
     if engine:
         if engine in engines:
-            click.echo(_('Engine details:') + ' ' + engine + "\n")
+            click.echo(_('Engine details: %s') % engine)
+            click.echo(_('    %s') % engines[engine].description())
+            click.echo()
             config_help = engines[engine].config_help()
             if config_help:
                 for setting, description in config_help.items():
-                    click.echo("%s:\n\t%s" % (setting, description))
+                    click.echo("%s:\n\t%s" % (setting, description.replace('\n', '\n\t')))
             else:
                 click.echo("No configuration settings for this engine")
         else:

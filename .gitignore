@@ -18,3 +18,4 @@ dask-worker-space
 .pytest_cache
 /dist
 .coverage
+/htmlcov

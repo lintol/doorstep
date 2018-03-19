@@ -247,8 +247,6 @@ class Report:
 
         valid = not bool(report[logging.ERROR])
 
-        logging.warn('SUPP')
-        logging.warn(supplementary)
         return {
             'supplementary': supplementary,
             'error-count': sum([len(r) for r in report.values()]),
