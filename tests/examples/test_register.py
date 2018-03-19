@@ -7,15 +7,22 @@ def testing_register_pass():
     path = os.path.join(os.path.dirname(__file__), 'data', 'registers-sample.csv')
     registers = processor()
     workflow = registers.get_workflow(path)
-    results = get(workflow, 'output')
+    report = get(workflow, 'output')
+    results = report.compile()
 
-    assert len(results)==1
-    report = results[0]
-    assert report['country-checked'][2] == {'state': 'country-register-country', 'country': 'country-register-name', 'nationality': 'country-register-citizen-names'}
-    assert report['country-mismatch'][2]['state'] == {2: {'mismatch': 'FY'}}
-    assert report['country-mismatch'][2]['country'] == {
+    print(report)
+    assert len(results['tables'][0]['warnings']) == 1
+    report = results['tables'][0]['warnings'][0]
+    assert report['code'] == 'country-mismatch'
+    assert report[2]['state'] == {2: {'mismatch': 'FY'}}
+    assert report[2]['country'] == {
         1: {'mismatch': 'Untied Knigdom', 'guess': ('United Kingdom', 86)},
         3: {'mismatch': 'Trinidad', 'guess': ('Trinidad and Tobago', 100)},
         4: {'mismatch': 'Trinidad', 'guess': ('Trinidad and Tobago', 100)}
     }
-    assert report['country-mismatch'][2]['nationality'] == {3: {'mismatch': 'Britidh', 'guess': ('British', 86)}}
+    assert report[2]['nationality'] == {3: {'mismatch': 'Britidh', 'guess': ('British', 86)}}
+
+    assert len(results['tables'][0]['informations']) == 1
+    report = results['tables'][0]['informations'][0]
+    assert report['code'] == 'country-checked'
+    assert report[2] == {'state': 'country-register-country', 'country': 'country-register-name', 'nationality': 'country-register-citizen-names'}

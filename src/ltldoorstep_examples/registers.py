@@ -10,20 +10,28 @@ Fourth function creates a dict object that loads the json file and runs each fun
 """
 
 import json
+import gettext
 import pandas as p
 import logging
 import sys
 import os
 from fuzzywuzzy import process, fuzz
 import ltldoorstep
-print(ltldoorstep.__dict__)
 from ltldoorstep.processor import DoorstepProcessor
 from ltldoorstep.reports import report
+from dask.threaded import get
 
 
 EXCLUDE_EMPTY_MATCHES = True
 PROVIDE_SUGGESTIONS = True
+GUESS_THRESHOLD = 85.0
 DEFAULT_REGISTER_LOCATION = os.path.join(os.path.dirname(__file__), '../..', 'tests', 'examples', 'data', 'register-countries.json')
+
+
+def set_properties(df, rprt):
+    rprt.set_properties(headers=list(df.columns))
+    return rprt
+
 
 class RegisterCountryItem:
     matches = ()
@@ -113,9 +121,9 @@ def best_matching_series(series, columns):
 
     return None
 
-def gov_countries_register_checker(data):
+def gov_countries_register_checker(data, rprt):
     # making test_data into data loaded from json
-    register_filename = os.path.join('data', DEFAULT_REGISTER_LOCATION)
+    register_filename = os.path.join(DEFAULT_REGISTER_LOCATION)
 
     with open(register_filename, 'r') as data_file:
         countries = {row['key']: row['item'][0] for row in json.load(data_file).values()}
@@ -127,27 +135,40 @@ def gov_countries_register_checker(data):
 
     issues = {k: best_matching_series(data[k], v) for k, v in columns.items()}
 
-    issues = {k: issue for  k, issue in issues.items() if issue}
+    matrix = {k: issue for  k, issue in issues.items() if issue}
 
-    mismatching_columns = {k: issue[1] for k, issue in issues.items() if issue[1]}
-    self._report.add_issue(
-        'lintol/gov-uk-register-countries:1',
-        logging.WARNING,
-        'country-mismatch',
-        ("Non-matching entries for states column data") + ': ' + str(mismatching_columns),
-        'Country mismatch'
+    mismatching_columns = {k: issue[1] for k, issue in matrix.items() if issue[1]}
+    for column, issues in mismatching_columns.items():
+        for row, issue in issues.items():
+            issue_text = _("Unexpected country-related term %s") % issue['mismatch']
+            if 'guess' in issue and issue['guess'][1] > GUESS_THRESHOLD:
+                issue_text += _(", perhaps you meant '%s'?") % issue['guess'][0]
 
-    )
+            column_number = data.columns.get_loc(column)
+            row_number = data.index.get_loc(row)
+            native_row = data.ix[row].to_json()
+            rprt.add_issue(
+                logging.WARNING,
+                'country-mismatch',
+                issue_text,
+                column_number=column_number,
+                row_number=row_number,
+                row=native_row,
+                error_data=issue
+            )
 
-    checked_columns = {k: 'country-register-{col}'.format(col=issue[0]) for k, issue in issues.items()}
-    self._report.add_issue(
-        'lintol/gov-uk-register-countries:1',
-        logging.INFO,
-        'country-mismatch',
-        ("Columns that were checked for state attributes (best-fit)") + ': ' + str(checked_columns),
-        'Country mismatch'
+    checked_columns = {k: 'country-register-{col}'.format(col=issue[0]) for k, issue in matrix.items()}
+    for column, checker in checked_columns.items():
+        _("%s using checker %s")
+        rprt.add_issue(
+            logging.INFO,
+            'country-checked',
+            _("Column %s was checked with state attribute checker %s") % (column, checker),
+            column_number=data.columns.get_loc(column),
+            error_data=checked_columns
+        )
 
-    )
+    return rprt
 
 """This is the workflow builder.
 
@@ -157,21 +178,21 @@ This function will feed the json file into each method and then return the resul
 class RegisterCountryProcessor(DoorstepProcessor):
     @staticmethod
     def make_report():
-        return report.TabularReport("Gov UK Registers Processor", "Info from Registers Processor")
+        return report.TabularReport('lintol/gov-uk-register-countries:1', _("Gov UK Registers Processor"))
 
     def get_workflow(self, filename, metadata={}):
         # setting up workflow dict
         workflow = {
             'load_csv' : (p.read_csv, filename),
-            'gov_countries_register_checker' : (gov_countries_register_checker, 'load_csv'),
-            'output': (lambda:self._report, 'gov_countries_register_checker')
+            'properties': (set_properties, 'load_csv', self._report),
+            'output' : (gov_countries_register_checker, 'load_csv', 'properties')
         }
         return workflow
 
 processor = RegisterCountryProcessor.make
 
-if __name__ == "__main__":
-    argv = sys.argv
-    processor = RegisterCountryProcessor()
-    workflow = processor.get_workflow(argv[1])
+if __name__ == '__main__':
+    gettext.install('ltldoorstep')
+    proc = processor()
+    workflow = proc.get_workflow(sys.argv[1])
     print(get(workflow, 'output'))

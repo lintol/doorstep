@@ -122,7 +122,7 @@ def serve(ctx, engine, protocol, router):
 @cli.command()
 @click.argument('workflow', 'Python workflow module')
 @click.option('--url', required=True)
-@click.option('--engine', required=True)
+@click.option('--engine', default='dask.threaded')
 @click.pass_context
 def crawl(ctx, workflow, url, engine):
     printer = ctx.obj['printer']
