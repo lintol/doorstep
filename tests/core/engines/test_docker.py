@@ -1,10 +1,13 @@
 """Check dask threaded engine is correctly functioning."""
 
+import json
+import logging
 from unittest.mock import Mock, patch, mock_open
 import pytest
 import asyncio
-from ltldoorstep.engines.dask_threaded import DaskThreadedEngine
+from ltldoorstep.engines.docker import DockerEngine
 from ltldoorstep.processor import DoorstepProcessor
+from ltldoorstep.reports.tabular import TabularReport
 
 import logging
 
@@ -12,7 +15,7 @@ import logging
 def engine():
     """Create a threaded dask engine."""
 
-    eng = DaskThreadedEngine()
+    eng = DockerEngine()
 
     return eng
 
@@ -33,18 +36,15 @@ def test_can_run_workflow(engine):
     module = '/tmp/bar.py'
     metadata = {}
 
-    mopen = mock_open(read_data='{}')
-    source_file_loader_path = 'ltldoorstep.engines.dask_threaded.SourceFileLoader'
-    source_file_loader = Mock()
+    report = TabularReport('testing-processor', 'blank')
+    report.add_issue(logging.ERROR, 'testing-processor', 'test')
+    mopen = mock_open(read_data=json.dumps(report.compile()))
+    docker = Mock()
 
-    module = Mock()
-
-    source_file_loader().load_module.return_value = module
-    module.processor = TestProcessor.make
     loop = asyncio.get_event_loop()
 
-    with patch('ltldoorstep.engines.dask_threaded.open', mopen) as _, \
-            patch(source_file_loader_path, source_file_loader):
+    with patch('ltldoorstep.engines.docker.open', mopen) as _, \
+            patch('ltldoorstep.engines.docker.docker', docker):
         result = loop.run_until_complete(engine.run(filename, module, metadata))
 
     assert result['tables'][0]['errors'][0]['processor'] == 'testing-processor'

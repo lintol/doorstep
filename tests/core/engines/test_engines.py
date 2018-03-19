@@ -11,3 +11,5 @@ def test_can_instantiate(engine):
     eng = engine()
 
     assert asyncio.iscoroutinefunction(eng.run)
+    assert (engine.config_help() is None or isinstance(engine.config_help(), dict))
+    assert isinstance(engine.description(), str)
