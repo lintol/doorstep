@@ -64,7 +64,7 @@ class RegisterCountryItem:
         analysis = {'mismatch': value}
 
         if self.suggest:
-            analysis['guess'] = process.extractOne(value, self.allowed, scorer=fuzz.token_set_ratio)
+            analysis['guess'] = tuple(process.extractOne(value, self.allowed, scorer=fuzz.token_set_ratio))
 
         return analysis
 
@@ -140,13 +140,13 @@ def gov_countries_register_checker(data, rprt):
     mismatching_columns = {k: issue[1] for k, issue in matrix.items() if issue[1]}
     for column, issues in mismatching_columns.items():
         for row, issue in issues.items():
-            issue_text = _("Unexpected country-related term %s") % issue['mismatch']
+            issue_text = _("Unexpected country-related term '%s'") % issue['mismatch']
             if 'guess' in issue and issue['guess'][1] > GUESS_THRESHOLD:
                 issue_text += _(", perhaps you meant '%s'?") % issue['guess'][0]
 
             column_number = data.columns.get_loc(column)
             row_number = data.index.get_loc(row)
-            native_row = data.ix[row].to_json()
+            native_row = json.loads(data.ix[row].to_json())
             rprt.add_issue(
                 logging.WARNING,
                 'country-mismatch',
