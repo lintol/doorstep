@@ -72,7 +72,8 @@ setup(
     tests_require=[
         'pytest',
         'pytest-asyncio',
-        'mock'
+        'mock',
+        'asynctest'
     ],
     entry_points='''
         [console_scripts]
