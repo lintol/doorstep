@@ -195,10 +195,10 @@ class Report:
         }
         supplementary = dictionary['supplementary']
         logging.warn(supplementary)
-        row_count = table['row-count']
-        time = table['time']
-        encoding = table['encoding']
-        headers = table['headers']
+        row_count = table['row-count'] if 'time' in table else None
+        time = table['time'] if 'time' in table else None
+        encoding = table['encoding'] if 'encoding' in table else None
+        headers = table['headers'] if 'headers' in table else None
 
         cls = get_report_class_from_preset(dictionary['preset'])
 
