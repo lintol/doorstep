@@ -4,6 +4,7 @@ import shutil
 import requests
 import uuid
 import os
+import logging
 import asyncio
 from urllib.parse import urlparse
 from contextlib import contextmanager
@@ -88,7 +89,9 @@ class DockerEngine(Engine):
                 if processor['module'] in modules:
                     content = modules[processor['module']]
                 else:
-                    raise RuntimeError(_("Module content missing from processor(s)"))
+                    error_msg = _("Module content missing from processor %s") % processor['module']
+                    logging.error(error_msg)
+                    raise RuntimeError(error_msg)
 
             session['processors'].append({
                 'name' : uid,
@@ -219,7 +222,6 @@ class DockerEngine(Engine):
                 docker_revision = 'latest'
                 lang = 'C.UTF-8' # TODO: more sensible default
 
-                print(metadata)
                 if 'definition' in metadata:
                     if 'docker' in metadata['definition']:
                         if 'image' in metadata['definition']['docker']:

@@ -119,7 +119,7 @@ class PachydermEngine(Engine):
                 if processor['module'] in modules:
                     content = modules[processor['module']]
                 else:
-                    raise RuntimeError(_("Module content missing from processor(s)"))
+                    raise RuntimeError(_("Module content missing from processor %s") % processor['module'])
                 files[filename] = content
 
             files = {os.path.join('/', uid, k): v for k, v in files.items()}
