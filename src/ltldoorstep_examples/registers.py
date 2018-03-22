@@ -25,7 +25,7 @@ from dask.threaded import get
 EXCLUDE_EMPTY_MATCHES = True
 PROVIDE_SUGGESTIONS = True
 GUESS_THRESHOLD = 85.0
-DEFAULT_REGISTER_LOCATION = os.path.join(os.path.dirname(__file__), '../..', 'tests', 'examples', 'data', 'register-countries.json')
+DEFAULT_REGISTER_LOCATION = os.path.join(os.path.dirname(ltldoorstep.__file__), '../..', 'tests', 'examples', 'data', 'register-countries.json')
 
 
 def set_properties(df, rprt):
