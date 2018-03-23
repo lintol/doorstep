@@ -16,7 +16,21 @@ end
 
 input_file = File.new(File.join(input_data, data_file))
 
-validator = Csvlint::Validator.new(input_file)
+metadata_file = File.read(metadata)
+metadata = JSON.parse(metadata_file)
+dialect = {
+  "header" => "true",
+  "delimiter" => ","
+}
+
+if metadata.key?("configuration") && metadata["configuration"].key?("delimiter")
+  if metadata["configuration"]["delimiter"] == "tab"
+    dialect["delimiter"] = "\t"
+  end
+end
+
+puts dialect
+validator = Csvlint::Validator.new(input_file, dialect)
 
 translations = {
     :wrong_content_type => "Content type is not text/csv",
