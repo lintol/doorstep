@@ -16,6 +16,8 @@ import docker
 import tempfile
 import json
 from .engine import Engine
+from ..encoders import json_dumps
+from ..errors import LintolDoorstepException, LintolDoorstepContainerException
 
 
 DEFAULT_CLIENT = 'tcp://localhost:8786'
@@ -130,6 +132,10 @@ class DockerEngine(Engine):
             try:
                 result = await self._run(data['filename'], data['content'], session['processors'], self.bind_ltldoorstep_module)
                 session['result'] = result
+            except Exception as error:
+                if not isinstance(error, LintolDoorstepException):
+                    error = LintolDoorstepException(error)
+                session['result'] = error
             finally:
                 session['completion'].release()
 
@@ -144,7 +150,10 @@ class DockerEngine(Engine):
 
         session['completion'].release()
 
-        return json.dumps(result)
+        if isinstance(result, LintolDoorstepException):
+            raise result
+
+        return json_dumps(result)
 
     @staticmethod
     async def _run(data_filename, data_content, processors, bind_ltldoorstep_module):
@@ -260,14 +269,21 @@ class DockerEngine(Engine):
                         type='bind'
                     ))
 
-                client.containers.run(
-                    '%s:%s' % (docker_image, docker_revision),
-                    environment=envs,
-                    mounts=mounts,
-                    user=1000,
-                    network_mode='none',
-                    cap_drop='ALL'
-                )
+                try:
+                    client.containers.run(
+                        '%s:%s' % (docker_image, docker_revision),
+                        environment=envs,
+                        mounts=mounts,
+                        user=1000,
+                        network_mode='none',
+                        cap_drop='ALL'
+                    )
+                except docker.errors.ContainerError as error:
+                    doorstep_exception = LintolDoorstepContainerException(
+                        error,
+                        processor=docker_image
+                    )
+                    raise doorstep_exception
 
             reports = []
             for report_file in report_files:
