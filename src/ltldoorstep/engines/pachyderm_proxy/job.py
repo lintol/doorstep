@@ -9,7 +9,7 @@ class PachydermJob:
     @staticmethod
     async def _execute(*args):
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, clients['pps'].list_job, pipeline.get_definition())
+        return await loop.run_in_executor(None, *args)
 
     def __init__(self, clients, jid):
         self._id = jid
