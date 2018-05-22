@@ -31,7 +31,7 @@ class PachydermEngine(Engine):
     _retry_processing_count = 50
     pipeline_definition = None
 
-    def __init__(self):
+    def __init__(self, config=None):
         self.logger = logging.getLogger(__name__)
         self.logger.debug("Setting up Pachyderm engine")
 
