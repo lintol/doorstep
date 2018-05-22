@@ -195,10 +195,10 @@ class Report:
         }
         supplementary = dictionary['supplementary']
         logging.warn(supplementary)
-        row_count = table['row-count']
-        time = table['time']
-        encoding = table['encoding']
-        headers = table['headers']
+        row_count = table['row-count'] if 'time' in table else None
+        time = table['time'] if 'time' in table else None
+        encoding = table['encoding'] if 'encoding' in table else None
+        headers = table['headers'] if 'headers' in table else None
 
         cls = get_report_class_from_preset(dictionary['preset'])
 
@@ -247,8 +247,6 @@ class Report:
 
         valid = not bool(report[logging.ERROR])
 
-        logging.warn('SUPP')
-        logging.warn(supplementary)
         return {
             'supplementary': supplementary,
             'error-count': sum([len(r) for r in report.values()]),
@@ -292,7 +290,7 @@ class Report:
                 self.properties[arg] = properties[arg]
 
 
-    def add_issue(self, log_level, code, message, item=None, error_data=None):
+    def add_issue(self, log_level, code, message, item=None, error_data=None, context=None):
         """This function will add an issue to the report and takes as parameters the processor, the log level, code, message"""
 
 
@@ -302,7 +300,7 @@ class Report:
         if not isinstance(item, ReportItem):
             item = ReportItemLiteral(item)
 
-        issue = ReportIssue(log_level, item=item, context=None, processor=self.processor, code=code, message=message, error_data=error_data)
+        issue = ReportIssue(log_level, item=item, context=context, processor=self.processor, code=code, message=message, error_data=error_data)
 
         self.append_issue(issue)
 

@@ -17,3 +17,5 @@ dask-worker-space
 /example/out
 .pytest_cache
 /dist
+.coverage
+/htmlcov

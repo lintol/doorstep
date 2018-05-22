@@ -44,16 +44,18 @@ def cli(ctx, debug, bucket, output, output_file):
     gettext.install('ltldoorstep')
 
 @cli.command(name='engine-info')
-@click.argument('engine', 'engine to get information about')
+@click.argument('engine', 'engine to get information about', required=False)
 @click.pass_context
 def engine_info(ctx, engine=None):
     if engine:
         if engine in engines:
-            click.echo(_('Engine details:') + ' ' + engine + "\n")
+            click.echo(_('Engine details: %s') % engine)
+            click.echo(_('    %s') % engines[engine].description())
+            click.echo()
             config_help = engines[engine].config_help()
             if config_help:
                 for setting, description in config_help.items():
-                    click.echo("%s:\n\t%s" % (setting, description))
+                    click.echo("%s:\n\t%s" % (setting, description.replace('\n', '\n\t')))
             else:
                 click.echo("No configuration settings for this engine")
         else:
@@ -101,8 +103,9 @@ def process(ctx, filename, workflow, engine, metadata):
 @cli.command()
 @click.option('--engine', required=True)
 @click.option('--protocol', type=click.Choice(['http', 'wamp']), required=True)
+@click.option('--router', default='localhost:8080')
 @click.pass_context
-def serve(ctx, engine, protocol):
+def serve(ctx, engine, protocol, router):
     printer = ctx.obj['printer']
 
     engine, engine_options = get_engine(engine)
@@ -114,14 +117,14 @@ def serve(ctx, engine, protocol):
         launch_flask(engine)
     elif protocol == 'wamp':
         from ltldoorstep.wamp_server import launch_wamp
-        launch_wamp(engine)
+        launch_wamp(engine, router)
     else:
         raise RuntimeError(_("Unknown protocol"))
 
 @cli.command()
 @click.argument('workflow', 'Python workflow module')
 @click.option('--url', required=True)
-@click.option('--engine', required=True)
+@click.option('--engine', default='dask.threaded')
 @click.pass_context
 def crawl(ctx, workflow, url, engine):
     printer = ctx.obj['printer']
