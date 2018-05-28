@@ -44,7 +44,7 @@ class WampClientComponent(ApplicationSession):
         self._server, self._session = await self.call('com.ltldoorstep.engage')
 
         await self.call_server('processor.post', {workflow: module}, metadata)
-        await self.call_server('data.post', filename, content)
+        await self.call_server('data.post', filename, content, False)
 
         result = json.loads(await self.call_server('report.get'))
 

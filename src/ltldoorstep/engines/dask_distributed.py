@@ -23,15 +23,16 @@ class DaskDistributedEngine(Engine):
     client_url = DEFAULT_CLIENT
 
     def __init__(self, config=None):
-        if config:
+        if config and 'engine' in config:
+            config = config['engine']
             if 'url' in config:
                 self.client_url = config['url']
 
-    def add_data(self, filename, content, metadata, session):
+    def add_data(self, filename, content, redirect, session):
         session['data-filename'] = filename
         session['data-content'] = content
 
-    def add_processor(self, filename, content, session):
+    def add_processor(self, filename, content, metadata, session):
         session['workflow-filename'] = filename
         session['workflow-content'] = content
         session['metadata'] = metadata

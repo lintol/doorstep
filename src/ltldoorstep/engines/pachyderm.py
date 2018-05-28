@@ -128,7 +128,7 @@ class PachydermEngine(Engine):
 
         self.logger.debug("Added processor")
 
-    def add_data(self, filename, content, session, bucket=None):
+    def add_data(self, filename, content, redirect, session, bucket=None):
         """Prepare to send a data file to Pachyderm."""
 
         self.logger.debug("Adding data")
@@ -198,7 +198,7 @@ class PachydermEngine(Engine):
                     content = file_obj.read().encode('utf-8')
 
             # TODO: safely set file extension
-            self.add_data('data.csv', content, session, bucket)
+            self.add_data('data.csv', content, redirect, session, bucket)
 
             monitor_pipeline, monitor_output = await self.monitor_pipeline(session)
 

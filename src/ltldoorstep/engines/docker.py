@@ -29,7 +29,8 @@ class DockerEngine(Engine):
     bind_ltldoorstep_module = False
 
     def __init__(self, config=None):
-        if config:
+        if config and 'engine' in config:
+            config = config['engine']
             if 'url' in config:
                 self.client_url = config['url']
             if 'bind' in config and config['bind']:
@@ -46,7 +47,7 @@ class DockerEngine(Engine):
                 "bind-mounts the ltldoorstep module into the executing container")
         }
 
-    def add_data(self, filename, content, session):
+    def add_data(self, filename, content, redirect, session):
         data = {
             'filename': filename,
             'content': content
@@ -122,8 +123,6 @@ class DockerEngine(Engine):
         return await self._run(filename, data_content, processors, self.bind_ltldoorstep_module)
 
     async def monitor_pipeline(self, session):
-        loop = asyncio.get_event_loop()
-
         session['completion'] = asyncio.Lock()
 
         async def run_when_ready():

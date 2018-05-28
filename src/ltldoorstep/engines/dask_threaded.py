@@ -11,7 +11,7 @@ from .engine import Engine
 class DaskThreadedEngine(Engine):
     """Allow execution of a dask workflow within this process."""
 
-    def add_data(self, filename, content, session):
+    def add_data(self, filename, content, redirect, session):
         session['data-filename'] = filename
         session['data-content'] = content
 

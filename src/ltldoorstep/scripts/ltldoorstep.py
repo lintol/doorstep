@@ -3,12 +3,14 @@ import json
 import requests
 import gettext
 from ltldoorstep import printer
+from ltldoorstep.config import load_config
 from ltldoorstep.engines import engines
 from ltldoorstep.file import make_file_manager
 import asyncio
 import logging
 
-def get_engine(engine):
+# TODO: possibly replace with e.g. dynaconf as needs evolve
+def get_engine(engine, config):
     if ':' in engine:
         engine, engine_options = engine.split(':')
         sp = lambda x: (x.split('=') if '=' in x else (x, True))
@@ -16,7 +18,13 @@ def get_engine(engine):
     else:
         engine_options = {}
 
-    return engine, engine_options
+    if 'engine' not in config:
+        config['engine'] = {}
+
+    for option, value in engine_options.items():
+        config['engine'][option] = value
+
+    return engine, config
 
 @click.group()
 @click.option('--debug/--no-debug', default=False)
@@ -25,6 +33,8 @@ def get_engine(engine):
 @click.option('--output-file', default=None)
 @click.pass_context
 def cli(ctx, debug, bucket, output, output_file):
+    gettext.install('ltldoorstep')
+
     if output == 'json':
         prnt = printer.JsonPrinter(debug, target=output_file)
     elif output == 'ansi':
@@ -32,16 +42,18 @@ def cli(ctx, debug, bucket, output, output_file):
     else:
         raise RuntimeError(_("Unknown output format"))
 
+    config = load_config()
+
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
     logger = logging.getLogger(__name__)
 
     ctx.obj = {
         'DEBUG': debug,
         'printer': prnt,
+        'config': config,
         'bucket': bucket,
         'logger': logger
     }
-    gettext.install('ltldoorstep')
 
 @cli.command(name='engine-info')
 @click.argument('engine', 'engine to get information about', required=False)
@@ -82,11 +94,12 @@ def status(ctx):
 @click.pass_context
 def process(ctx, filename, workflow, engine, metadata):
     printer = ctx.obj['printer']
+    config = ctx.obj['config']
     bucket = ctx.obj['bucket']
 
-    engine, engine_options = get_engine(engine)
+    engine, config = get_engine(engine, config)
     click.echo(_("Engine: %s" % engine))
-    engine = engines[engine](config=engine_options)
+    engine = engines[engine](config=config)
 
     if metadata is None:
         metadata = {}
@@ -107,17 +120,18 @@ def process(ctx, filename, workflow, engine, metadata):
 @click.pass_context
 def serve(ctx, engine, protocol, router):
     printer = ctx.obj['printer']
+    config = ctx.obj['config']
 
-    engine, engine_options = get_engine(engine)
+    engine, config = get_engine(engine, config)
     click.echo(_("Engine: %s" % engine))
-    engine = engines[engine](config=engine_options)
+    engine = engines[engine](config=config)
 
     if protocol == 'http':
         from ltldoorstep.flask_server import launch_flask
         launch_flask(engine)
     elif protocol == 'wamp':
         from ltldoorstep.wamp_server import launch_wamp
-        launch_wamp(engine, router)
+        launch_wamp(engine, router, config)
     else:
         raise RuntimeError(_("Unknown protocol"))
 
@@ -128,10 +142,12 @@ def serve(ctx, engine, protocol, router):
 @click.pass_context
 def crawl(ctx, workflow, url, engine):
     printer = ctx.obj['printer']
+    config = ctx.obj['config']
 
-    engine, engine_options = get_engine(engine)
+    engine, config = get_engine(engine, config)
+
     click.echo(_("Engine: %s" % engine))
-    engine = engines[engine](config=engine_options)
+    engine = engines[engine](config=config)
 
     metadata = {}
 

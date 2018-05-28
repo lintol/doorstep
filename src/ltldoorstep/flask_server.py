@@ -35,7 +35,7 @@ class Data(Resource):
         content = args['content'].read()
         filename = args['content'].filename
 
-        app.engine.add_data(filename, content, app.session)
+        app.engine.add_data(filename, content, redirect, app.session)
         return 'Success'
 
 
