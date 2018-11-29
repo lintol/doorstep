@@ -11,7 +11,7 @@ def test_good_on_bad():
 
     errors = results['tables'][0]['errors']
     print(errors)
-    assert len(errors) == 3
+    assert len(errors) == 7
 
     report = errors[0]
     print(report)
