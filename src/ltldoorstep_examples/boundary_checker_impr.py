@@ -19,7 +19,7 @@ import os
 from ltldoorstep.processor import DoorstepProcessor
 from ltldoorstep.reports import report
 
-DEFAULT_OUTLINE = 'example/data/osni-ni-outline-lowres.geojson'
+DEFAULT_OUTLINE = 'tests/examples/data/osni-ni-outline-lowres.geojson'
 
 
 def find_ni_data(first_file, rprt, metadata=None):

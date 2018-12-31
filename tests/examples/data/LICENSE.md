@@ -1,10 +1,4 @@
-# Lintol Processors
-
-Included in this sub-tree are a set of processors that are
-tested with Lintol Doorstep, for validating and/or cleaning
-data. Sample datasets are provided to demonstrate functionality.
-
-## Datasets
+The data in this directory is mostly a selection of open datasets, mainly courtesy of [OpenDataNI](https://opendatani.gov.uk)
 
 ### pedestriancrossing.geojson
 
@@ -44,11 +38,3 @@ These datasets are derived from the (NI) Department for Infrastructure [maps of 
 ### active-places-ni.csv
 
 This data is the Sport NI [Active Places NI - Sports Facilities Database](https://www.opendatani.gov.uk/dataset/active-places-ni-sports-facilities-database/resource/9615b5b6-3f11-4968-b337-f1dc1e9db828), available under the [UK Open Governement License](http://reference.data.gov.uk/id/open-government-licence).
-
-## Tests
-
-To test processors, run:
-
-  python3 -m pytest tests/examples/test_NAME.py
-
-in the /examples directory, with your virtual environment active.
