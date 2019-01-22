@@ -171,8 +171,10 @@ def dt_classify_location(data, rprt, metadata, word_matrix):
     if 'render-codes' in metadata.configuration and metadata.configuration['render-codes']:
         berlin = load_berlin()
         overall_results = [(berlin.get_code(r), n) for r, n in overall_results.items()]
+        json_results = [(r.to_json(), n) for r, n in overall_results]
     else:
         overall_results = [(r, n) for r, n in overall_results.items()]
+        json_results = overall_results
 
     overall_results.sort(key=lambda r: r[1], reverse=True)
     rows = len(data)
@@ -182,7 +184,7 @@ def dt_classify_location(data, rprt, metadata, word_matrix):
         logging.INFO,
         'possible-locations-overall',
         issue_text,
-        error_data=overall_results
+        error_data=json_results
     )
 
     # making test_data into data loaded from json

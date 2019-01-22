@@ -1,4 +1,5 @@
 import colorama
+import re
 import os
 import logging
 import json
@@ -134,15 +135,13 @@ class HtmlPrinter(Printer):
         for log_level in LEVEL_MAPPING:
             for issue in report.get_issues(log_level):
                 item = issue.get_item()
-                item_str = str(item.definition)
-                if len(item_str) > 40:
-                    item_str = item_str[:37] + '...'
                 levels[log_level].append([
                     issue.processor,
-                    str(item.location),
+                    item.location,
                     issue.code,
                     issue.message,
-                    item_str
+                    item.definition,
+                    issue.error_data
                 ])
 
         level_labels = [
@@ -151,6 +150,7 @@ class HtmlPrinter(Printer):
             (logging.INFO, 'Info', 'info')
         ]
 
+        addslashes = re.compile(r'"')
         for level_code, level_title, level_class in level_labels:
             if levels[level_code]:
                 table = ['<h3>{}</h3>'.format(level_title), '<table>']
@@ -160,12 +160,20 @@ class HtmlPrinter(Printer):
                     _('Location'),
                     _('Issue'),
                     _('Description'),
-                    _('Data')
+                    _('On Item'),
+                    _('Issue Data')
                 ]) + '</tr></thead>')
                 table.append('<tbody>')
 
                 for error in levels[level_code]:
-                    table.append('<tr><td>{}</td></tr>'.format('</td><td>'.join(error)))
+                    row = '<tr>'
+                    for cell in error:
+                        if type(cell) is str:
+                            row += '<td>{}</td>'.format(cell)
+                        else:
+                            row += '<td class="field-json" data-json="{}"></td>'.format(addslashes.sub(r'&quot;', json.dumps(cell)))
+
+                    table.append(row)
 
                 table.append('</tbody>')
                 table.append('</table>')
