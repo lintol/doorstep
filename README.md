@@ -8,6 +8,7 @@ We recommend `pipenv`, but any `setuptools` compatible install method should wor
 
     pipenv shell
     python3 -m pip install -r requirements.txt
+    python3 setup.py install
 
 Or, for development,
 

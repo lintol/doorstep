@@ -6,8 +6,8 @@ import re
 import unicodedata
 import unicodeblock.blocks
 import logging
-from ltldoorstep.processor import DoorstepProcessor, tabular_add_issue
-from ltldoorstep import report
+from ltldoorstep.processor import DoorstepProcessor
+from ltldoorstep.reports.report import combine_reports
 
 unicode_category_major = {
     'L': ('letter'),
@@ -26,40 +26,41 @@ def check_character_blocks(csv, rprt):
 
     block_set = set()
     # consider double @functools.lru_cache(maxsize=128, typed=False) if required
-    string_csv.apply(np.vectorize(lambda cell: block_set.update({unicodeblock.blocks.of(c) for c in cell})))
+    string_csv.apply(np.vectorize(lambda cell: block_set.update({unicodeblock.blocks.of(c) for c in cell}) if type(cell) is str else ''))
 
     if None in block_set:
         block_set.remove(None)
         rprt.add_issue(
-            'lintol-csv-checker',
             logging.WARNING,
             'unknown-category',
             ("Unknown character type found")
         )
 
     rprt.add_issue(
-        'lintol-csv-checker',
         logging.WARNING,
         'blocks-found',
         ("Character blocks found") + ': ' + ', '.join(block_set),
 
     )
 
+    return rprt
+
 def check_character_categories(csv, rprt):
     # All characters are Latinate (unicodedata.normalize('NFKD')[0] is Latin)
     string_csv = csv.select_dtypes(include=['object'])
     categories = set()
     # consider double @functools.lru_cache(maxsize=128, typed=False) if required
-    string_csv.apply(np.vectorize(lambda cell: categories.update({unicodedata.category(c) for c in cell})))
+    string_csv.apply(np.vectorize(lambda cell: categories.update({unicodedata.category(c) for c in cell}) if type(cell) is str else ''))
 
     categories_found = [unicode_category_major[c[0]] for c in categories]
     rprt.add_issue(
-        'lintol/csv-checker:1',
         logging.INFO,
         'categories-found',
         ("Character categories found") + ': ' + ', '.join(categories_found),
 
     )
+
+    return rprt
 
 def check_std_dev(df, rprt):
     # Standard Deviation is non-negative
@@ -81,16 +82,19 @@ def check_std_dev(df, rprt):
 
 def check_ids_unique(csv, rprt):
     # IDs are unique
-    ids = csv['ID']
-    min_duplicates = len(set(ids)) < len(ids)
-    if min_duplicates > 0:
-        rprt.add_issue(
-            'lintol/csv-checker:1',
-            logging.WARNING,
-            'check-ids-unique:ids-not-unique',
-            ("IDs are not unique, at least %d duplicates") % min_duplicates,
+    if 'ID' in csv:
+        ids = csv['ID']
+        min_duplicates = len(set(ids)) < len(ids)
+        if min_duplicates > 0:
+            rprt.add_issue(
+                'lintol/csv-checker:1',
+                logging.WARNING,
+                'check-ids-unique:ids-not-unique',
+                ("IDs are not unique, at least %d duplicates") % min_duplicates,
 
-        )
+            )
+
+    return rprt
 
 def set_properties(df, rprt):
     rprt.set_properties(headers=list(df.columns))
@@ -98,22 +102,22 @@ def set_properties(df, rprt):
 
 def check_ids_surjective(csv, rprt):
     # IDs are surjective onto their range
-    ids = csv['ID']
-    unique_ids = len(set(ids))
-    expected_ids = max(ids) - min(ids) + 1
-    if expected_ids != unique_ids:
-        rprt.add_issue(
-            'lintol:csv-checker:1',
-            logging.WARNING,
-            'check-ids-surjective:not-surjective',
-            ("IDs are missing, %d missing between %d and %d") % (expected_ids - unique_ids, min(ids), max(ids)),
-            error_data={
-                'missing-count': expected_ids - unique_ids,
-                'lowest-id': min(ids),
-                'highest-id': max(ids)
-            }
+    if 'ID' in csv:
+        ids = csv['ID']
+        unique_ids = len(set(ids))
+        expected_ids = max(ids) - min(ids) + 1
+        if expected_ids != unique_ids:
+            rprt.add_issue(
+                logging.WARNING,
+                'check-ids-surjective:not-surjective',
+                ("IDs are missing, %d missing between %d and %d") % (expected_ids - unique_ids, min(ids), max(ids)),
+                error_data={
+                    'missing-count': expected_ids - unique_ids,
+                    'lowest-id': min(ids),
+                    'highest-id': max(ids)
+                }
 
-        )
+            )
 
 class CsvCheckerProcessor(DoorstepProcessor):
     preset = 'tabular'
@@ -128,7 +132,7 @@ class CsvCheckerProcessor(DoorstepProcessor):
             'step-C': (check_character_categories, 'load-csv', self.make_report()),
             'step-D': (check_character_blocks, 'load-csv', self.make_report()),
             'condense': (workflow_condense, 'step-A', 'step-B', 'step-B', 'step-D'),
-            'output': (set_properties, 'read', 'condense')
+            'output': (set_properties, 'load-csv', 'condense')
         }
         return workflow
 
