@@ -140,5 +140,5 @@ processor = CsvCheckerProcessor
 if __name__ == "__main__":
     argv = sys.argv
     processor = CsvCheckerProcessor()
-    workflow = processor.get_workflow(argv[1])
+    workflow = processor.build_workflow(argv[1])
     print(get(workflow, 'output'))

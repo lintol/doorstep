@@ -16,3 +16,4 @@ requests
 shapely
 fuzzywuzzy
 asynctest
+geotext

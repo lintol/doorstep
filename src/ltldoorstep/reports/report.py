@@ -194,7 +194,7 @@ class Report:
             'fileType': table['format']
         }
         supplementary = dictionary['supplementary']
-        logging.warn(supplementary)
+        logging.warning(supplementary)
         row_count = table['row-count'] if 'time' in table else None
         time = table['time'] if 'time' in table else None
         encoding = table['encoding'] if 'encoding' in table else None
@@ -276,8 +276,8 @@ class Report:
         }
 
     def add_supplementary(self, typ, source, name):
-        logging.warn('Adding supplementary')
-        logging.warn((typ, source, name))
+        logging.warning('Adding supplementary')
+        logging.warning((typ, source, name))
         self.supplementary.append({
             'type': typ,
             'source': source,

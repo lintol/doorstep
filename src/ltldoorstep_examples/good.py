@@ -55,5 +55,5 @@ processor = GoodTablesProcessor.make
 if __name__ == "__main__":
     argv = sys.argv
     processor = GoodTablesProcessor()
-    workflow = processor.get_workflow(argv[1])
+    workflow = processor.build_workflow(argv[1])
     print(get(workflow, 'output'))
