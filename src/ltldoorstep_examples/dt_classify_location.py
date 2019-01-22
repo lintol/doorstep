@@ -172,19 +172,21 @@ def dt_classify_location(data, rprt, metadata, word_matrix):
         berlin = load_berlin()
         overall_results = [(berlin.get_code(r), n) for r, n in overall_results.items()]
         json_results = [(r.to_json(), n) for r, n in overall_results]
+        overall_results = [(r.describe(), n) for r, n in overall_results]
     else:
         overall_results = [(r, n) for r, n in overall_results.items()]
         json_results = overall_results
 
     overall_results.sort(key=lambda r: r[1], reverse=True)
     rows = len(data)
-    issue_text = "Overall possible locations referenced: {}".format(', '.join(['{} ({:.2f}%)'.format(repr(r), 100 * n / rows) for r, n in overall_results]))
+    issue_text = "Overall possible locations referenced: {}".format(', '.join(['{} ({:.2f}%)'.format(r, 100 * n / rows) for r, n in overall_results]))
 
     rprt.add_issue(
         logging.INFO,
         'possible-locations-overall',
         issue_text,
-        error_data=json_results
+        error_data=json_results,
+        at_top=True
     )
 
     # making test_data into data loaded from json
