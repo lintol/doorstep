@@ -137,10 +137,10 @@ class HtmlPrinter(Printer):
                 item = issue.get_item()
                 levels[log_level].append([
                     issue.processor,
-                    item.location,
+                    str(item.location),
                     issue.code,
                     issue.message,
-                    item.definition,
+                    str(item.definition) if item.definition else '',
                     issue.error_data
                 ])
 
