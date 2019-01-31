@@ -19,4 +19,4 @@ dask-worker-space
 /dist
 .coverage
 /htmlcov
-/Pipfile
+Pipfile

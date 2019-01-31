@@ -85,7 +85,9 @@ class RegisterCountryItem:
         analysis = {'mismatch': value}
 
         if self.suggest:
-            analysis['guess'] = tuple(process.extractOne(value, self.allowed, scorer=fuzz.token_set_ratio))
+            analysis['guess'] = tuple(
+                process.extractOne(value, self.allowed, scorer=fuzz.token_set_ratio)
+            )
 
         return analysis
 
