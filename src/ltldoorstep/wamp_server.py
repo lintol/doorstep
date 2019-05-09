@@ -1,5 +1,10 @@
 from autobahn.asyncio.wamp import ApplicationRunner, ApplicationSession
+import sys
+import traceback
+import time
 import requests
+import docker
+from urllib.parse import urlparse
 import asyncio
 import json
 import logging
@@ -8,6 +13,8 @@ from collections import OrderedDict
 from contextlib import contextmanager
 import os
 import uuid
+from .ini import DoorstepIni
+from .errors import LintolDoorstepException
 
 class SessionSet(OrderedDict):
     def __init__(self, engine):
@@ -49,14 +56,15 @@ class ProcessorResource():
         self._engine = engine
         self._config = config
 
-    async def post(self, modules, metadata, session):
+    async def post(self, modules, ini, session):
         processors = {}
         for module, content in modules.items():
             processors[module] = content.encode('utf-8')
 
-        logging.warn(metadata)
+        ini = DoorstepIni.from_dict(ini)
+        logging.warn(ini)
 
-        return self._engine.add_processor(processors, metadata, session)
+        return self._engine.add_processor(processors, ini, session)
 
 class DataResource():
     def __init__(self, engine, config):
@@ -95,13 +103,14 @@ class ReportResource():
         return result_string
 
 class DoorstepComponent(ApplicationSession):
-    def __init__(self, engine, sessions, config, *args, **kwargs):
+    def __init__(self, engine, sessions, config, debug, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._id = 'ltlwc-%s' % str(uuid.uuid4())
         self._engine = engine
         self._sessions = sessions
         self._config = config
+        self._debug = debug
 
         self._resource_processor = ProcessorResource(self._engine, self._config)
         self._resource_data = DataResource(self._engine, self._config)
@@ -117,11 +126,22 @@ class DoorstepComponent(ApplicationSession):
         uri = 'com.ltldoorstep.{server}.{endpoint}'.format(server=self._id, endpoint=endpoint)
 
         async def _routine(session, *args, **kwargs):
-            return await callback(*args, session=self.get_session(session), **kwargs)
+            try:
+                result = await callback(*args, session=self.get_session(session), **kwargs)
+            except LintolDoorstepException as e:
+                if self._debug:
+                    logging.error(e.processor)
+                    logging.error(e.exception)
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    traceback.print_tb(exc_traceback)
+                raise e
+
+            return result
 
         return await self.register(_routine, uri)
 
     async def onJoin(self, details):
+        print("Joining")
         async def get_session_pair():
             session = self.make_session()
             print(_("Engaging for session %s") % session['name'])
@@ -158,8 +178,44 @@ class DoorstepComponent(ApplicationSession):
         asyncio.get_event_loop().stop()
 
 
-def launch_wamp(engine, router='localhost:8080', config={}):
+def launch_wamp_real(engine, router='localhost:8080', config={}, debug=False):
     runner = ApplicationRunner(url=('ws://%s/ws' % router), realm='realm1')
 
     with SessionSet(engine) as sessions:
-        runner.run(lambda *args, **kwargs: DoorstepComponent(engine, sessions, config, *args, **kwargs))
+        print("Running")
+        runner.run(lambda *args, **kwargs: DoorstepComponent(engine, sessions, config, debug, *args, **kwargs))
+        print("Run")
+
+def launch_wamp(engine, router='#localhost:8080', config={}, debug=False):
+    if router[0] == '#':
+        router= router[1:]
+        fallback = True
+    else:
+        fallback = False
+
+    try:
+        launch_wamp_real(engine, router, config, debug)
+    except ConnectionRefusedError as e:
+        if fallback:
+            c = None
+            try:
+                print("No current WAMP router, starting one")
+                client = docker.from_env()
+
+                hostname, port = router.split(':')
+                c = client.containers.run(
+                    'crossbario/crossbar',
+                    ports={
+                        '8080/tcp': (hostname, port if port else 8080)
+                    },
+                    detach=True,
+                    remove=True
+                )
+                time.sleep(3)
+                launch_wamp_real(engine, router, config, debug)
+            finally:
+                if c:
+                    print("[cleaning purpose-run WAMP router]")
+                    c.stop()
+        else:
+            print("No current WAMP router found (tip: if you add a # at the front of the router URL, we'll try and start it for you).")

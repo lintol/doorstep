@@ -1,11 +1,9 @@
 import click
 import json
-import requests
 import gettext
 from ltldoorstep import printer
 from ltldoorstep.config import load_config
 from ltldoorstep.engines import engines
-from ltldoorstep.file import make_file_manager
 import asyncio
 import logging
 
@@ -111,7 +109,7 @@ def process(ctx, filename, workflow, engine, metadata):
 @cli.command()
 @click.option('--engine', required=True)
 @click.option('--protocol', type=click.Choice(['http', 'wamp']), required=True)
-@click.option('--router', default='localhost:8080')
+@click.option('--router', default='#localhost:8080')
 @click.pass_context
 def serve(ctx, engine, protocol, router):
     printer = ctx.obj['printer']
@@ -126,35 +124,6 @@ def serve(ctx, engine, protocol, router):
         launch_flask(engine)
     elif protocol == 'wamp':
         from ltldoorstep.wamp_server import launch_wamp
-        launch_wamp(engine, router, config)
+        launch_wamp(engine, router, config, debug=ctx.obj['DEBUG'])
     else:
         raise RuntimeError(_("Unknown protocol"))
-
-@cli.command()
-@click.argument('workflow', 'Python workflow module')
-@click.option('--url', required=True)
-@click.option('--engine', default='dask.threaded')
-@click.pass_context
-def crawl(ctx, workflow, url, engine):
-    printer = ctx.obj['printer']
-    config = ctx.obj['config']
-
-    engine, config = get_engine(engine, config)
-
-    click.echo(_("Engine: %s" % engine))
-    engine = engines[engine](config=config)
-
-    metadata = {}
-
-    from ckanapi import RemoteCKAN
-    client = RemoteCKAN(url, user_agent='lintol-doorstep-crawl/1.0 (+http://lintol.io)')
-    resources = client.action.resource_search(query='format:csv')
-    if 'results' in resources:
-        for resource in resources['results']:
-            r = requests.get(resource['url'])
-            with make_file_manager(content={'data.csv': r.text}) as file_manager:
-                filename = file_manager.get('data.csv')
-                loop = asyncio.get_event_loop()
-                result = loop.run_until_complete(engine.run(filename, workflow, metadata))
-                printer.build_report(result)
-    printer.print_output()

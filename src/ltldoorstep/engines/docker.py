@@ -18,6 +18,8 @@ import json
 from .engine import Engine
 from ..encoders import json_dumps
 from ..errors import LintolDoorstepException, LintolDoorstepContainerException
+from ..metadata import DoorstepMetadata
+from ..ini import DoorstepIni
 
 
 DEFAULT_CLIENT = 'tcp://localhost:8786'
@@ -54,45 +56,40 @@ class DockerEngine(Engine):
         }
         asyncio.ensure_future(session['queue'].put(data))
 
-    def add_processor(self, modules, metadata, session):
+    def add_processor(self, modules, ini, session):
         """Mark a module_name as a processor."""
 
         lang = 'C.UTF-8' # TODO: more sensible default
 
-        if 'lang' in metadata:
+        if type(ini) is dict:
+            ini = DoorstepIni.from_dict(ini)
+
+        if ini.lang:
             # TODO: check lang is valid
-            lang = metadata['lang']
+            lang = ini.lang
 
         if 'processors' not in session:
             session['processors'] = []
 
-        for uid, processor in metadata['definitions'].items():
+        for uid, metadata in ini.definitions.items():
             docker_image = 'lintol/doorstep'
             docker_revision = 'latest'
 
-            if 'definition' in processor:
-                if 'docker' in processor['definition']:
-                    if 'image' in processor['definition']['docker']:
-                        docker_image = processor['definition']['docker']['image']
-                        docker_revision = processor['definition']['docker']['revision']
+            if metadata.docker['image']:
+                docker_image = metadata.docker['image']
+            if metadata.docker['revision']:
+                docker_image = metadata.docker['revision']
 
             docker = '{image}:{revision}'.format(image=docker_image, revision=docker_revision)
-            configuration = {
-                'name': uid,
-                'definition': processor['definition'] if 'definition' in processor else {},
-                'configuration': processor['configuration'] if 'configuration' in processor else {},
-                'settings': processor['settings'] if 'settings' in processor else {},
-                'supplementary': processor['supplementary'] if 'supplementary' in processor else {}
-            }
 
             filename = None
             content = None
-            if 'module' in processor:
-                filename = processor['module']
-                if processor['module'] in modules:
-                    content = modules[processor['module']]
+            if metadata.module:
+                filename = metadata.module
+                if metadata.module in modules:
+                    content = modules[metadata.module]
                 else:
-                    error_msg = _("Module content missing from processor %s") % processor['module']
+                    error_msg = _("Module content missing from processor %s") % metadata.module
                     logging.error(error_msg)
                     raise RuntimeError(error_msg)
 
@@ -100,7 +97,7 @@ class DockerEngine(Engine):
                 'name' : uid,
                 'filename': filename,
                 'content': content,
-                'metadata': configuration
+                'metadata': metadata
             })
 
     async def run(self, filename, workflow_module, metadata, bucket=None):
@@ -190,9 +187,9 @@ class DockerEngine(Engine):
 
                 os.makedirs(processor_root)
 
-                if 'supplementary' in metadata and metadata['supplementary']:
+                if metadata.supplementary:
                     supplementary_internal = {}
-                    for i, (key, supplementary) in enumerate(metadata['supplementary'].items()):
+                    for i, (key, supplementary) in enumerate(metadata.supplementary.items()):
                         error = _("(unknown error)")
                         if supplementary.startswith('error://'):
                             error = supplementary[len('error://'):]
@@ -214,10 +211,10 @@ class DockerEngine(Engine):
                             'location': os.path.join('/pfs', 'processors', processor['name'], supplementary_basename)
                         }
 
-                    metadata['supplementary'] = supplementary_internal
+                    metadata.supplementary = supplementary_internal
 
                 with open(os.path.join(processor_root, 'metadata.json'), 'w') as metadata_file:
-                    json.dump(metadata, metadata_file)
+                    json.dump(metadata.to_dict(), metadata_file)
 
                 if processor['filename']:
                     shutil.copy(file_manager.get(processor['filename']), os.path.join(processor_root, processor['filename']))
@@ -230,15 +227,14 @@ class DockerEngine(Engine):
                 docker_revision = 'latest'
                 lang = 'C.UTF-8' # TODO: more sensible default
 
-                if 'definition' in metadata:
-                    if 'docker' in metadata['definition']:
-                        if 'image' in metadata['definition']['docker']:
-                            docker_image = metadata['definition']['docker']['image']
-                            docker_revision = metadata['definition']['docker']['revision']
+                if metadata.docker['image']:
+                    docker_image = metadata.docker['image']
+                if metadata.docker['revision']:
+                    docker_revision = metadata.docker['revision']
 
-                if 'lang' in metadata:
+                if metadata.lang:
                     # TODO: check lang is valid
-                    lang = metadata['lang']
+                    lang = metadata.lang
 
                 envs = {
                     'LANG': lang,
@@ -290,9 +286,8 @@ class DockerEngine(Engine):
                     reports.append(Report.load(report_f))
 
             report = combine_reports(*reports)
-            result = report.compile(data_basename)
 
-        return result
+        return report
 
     @contextmanager
     def make_session(self):
