@@ -57,8 +57,8 @@ def classify_sentences(rprt, data_sentences, metadata_sentences):
     results = get_categories(sentences)
 
     for key, result in zip(keys, results):
-        print(result)
-        issue_text = _("Possible categories in {}: {}").format(key, ", ".join(["{} ({:.2f}%)".format(_(c), r * 100) for r, c in result]))
+        result = sorted(result, key=lambda r: r[0], reverse=True)
+        issue_text = _("Possible categories in {}: {}").format(key, ", ".join(["{} ({:.2f}%)".format(_(c), r * 100) for r, c in result if r > 0.3]))
 
         rprt.add_issue(
             logging.INFO,

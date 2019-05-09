@@ -14,7 +14,9 @@ class LintolDoorstepException(Serializable, ApplicationError):
 
     @property
     def status_code(self):
-        return self.exception.status_code
+        if hasattr(self.exception, 'status_code'):
+            return self.exception.status_code
+        return None
 
     def serialize_exception(self):
         return str(self.exception)

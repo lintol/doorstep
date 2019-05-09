@@ -56,19 +56,19 @@ class OpenFaaSEngine(Engine):
     async def _run(self):
         with open('/tmp/openfaas', 'r') as f:
             pw = f.read()
-        rq = requests.get('http://192.168.39.150:31112/system/functions', data={
+        rq = requests.get('http://127.0.0.1:8080/system/functions', data={
             "service": "stronghash3",
             "image": "functions/alpine",
             "envProcess": "sha512sum",
             "network": "func_functions"
         }, auth=HTTPBasicAuth('admin', pw))
 
-        rq = requests.post('http://192.168.39.150:31112/function/stronghash3', data={
+        rq = requests.post('http://127.0.0.1:8080/function/stronghash3', data={
         }, auth=HTTPBasicAuth('admin', pw))
-        print(rq.content)
+        print(rq.content.decode('utf-8'))
 
         report = TabularReport('dummy-openfaas-test', 'Dummy OpenFaaS Test', filename='/tmp/dummy.csv')
-        report.add_issue(logging.WARN, 'test-openfaas', rq.content)
+        report.add_issue(logging.WARN, 'test-openfaas', rq.content.decode('utf-8'))
 
         return report.compile()
 

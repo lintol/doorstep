@@ -174,7 +174,7 @@ def dt_classify_location(data, rprt, metadata, word_matrix):
         berlin = load_berlin()
         overall_results = [(berlin.get_code(r), n) for r, n in overall_results.items()]
         json_results = [(r.to_json(), n) for r, n in overall_results]
-        overall_results = [(r.describe(), n) for r, n in overall_results]
+        overall_results = [(r.definition(), n) for r, n in overall_results]
     else:
         overall_results = [(r, n) for r, n in overall_results.items()]
         json_results = overall_results

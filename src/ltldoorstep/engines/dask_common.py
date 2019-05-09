@@ -9,10 +9,10 @@ def execute(filename, module_name, metadata):
     mod = __import__(module_name)
     return run(filename, mod, metadata)
 
-def run(filename, mod, metadata):
+def run(filename, mod, metadata, compiled=True):
     """Real runner for a given ltldoorstep processor module and datafile."""
 
-    print(mod.processor)
+    print('PROC', mod.processor)
     processor = mod.processor()
     workflow = processor.build_workflow(filename, metadata)
 
@@ -23,4 +23,6 @@ def run(filename, mod, metadata):
     elif isinstance(result, Report):
         processor.set_report(result)
 
-    return processor.compile_report(filename, metadata)
+    if compiled:
+        return processor.compile_report(filename, metadata)
+    return processor.get_report()
