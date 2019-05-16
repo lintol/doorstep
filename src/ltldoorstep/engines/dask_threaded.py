@@ -22,10 +22,11 @@ class DaskThreadedEngine(Engine):
             'filename': filename,
             'content': content
         }
-        logging.warn("Data added")
+        # logging.warn("Data added")
         ensure_future(session['queue'].put(data))
 
     def add_processor(self, modules, ini, session):
+
         if 'processors' not in session:
             session['processors'] = []
 
@@ -58,11 +59,16 @@ class DaskThreadedEngine(Engine):
 
         session['completion'] = Lock()
 
+        # currently crashing here for a large dataset....
         async def run_when_ready():
+            logging.warn("1. Running when ready ************")
             session['completion'].acquire()
-
+            # error here
+            logging.warn('Session var here before data is set %s' % session['queue'])
             data = await session['queue'].get()
-
+            logging.warn('Session var here after data is set %s' % session['queue'])
+            if data == 0:
+                session['completion'].release()
             try:
                 result = await self.run_with_content(data['filename'], data['content'], session['processors'])
                 session['result'] = result
@@ -80,7 +86,7 @@ class DaskThreadedEngine(Engine):
     async def get_output(self, session):
         await session['completion'].acquire()
 
-        print(session)
+        # print(session)
         result = session['result']
 
         session['completion'].release()
@@ -102,9 +108,9 @@ class DaskThreadedEngine(Engine):
                 workflow_module = workflow_module.decode('utf-8')
 
             metadata = processor['metadata']
-            print(processor, 'B')
+            # print(processor, 'B')
             with make_file_manager(content={filename: content, processor['filename']: workflow_module}) as file_manager:
-                print(file_manager.get(processor['filename']), processor['filename'], workflow_module, 'A')
+                # print(file_manager.get(processor['filename']), processor['filename'], workflow_module, 'A')
                 mod = SourceFileLoader('custom_processor', file_manager.get(processor['filename']))
                 local_file = file_manager.get(filename)
                 report = dask_run(local_file, mod.load_module(), metadata, compiled=False)
@@ -118,14 +124,15 @@ class DaskThreadedEngine(Engine):
         """Start the multi-threaded execution process."""
 
         mod = SourceFileLoader('custom_processor', workflow_module)
-
-        result = None
-        with make_file_manager(bucket) as file_manager:
-            local_file = file_manager.get(filename)
-            print('RUN')
-            result = dask_run(local_file, mod.load_module(), metadata)
-
-        return result
+        try:
+            result = None
+            with make_file_manager(bucket) as file_manager:
+                local_file = file_manager.get(filename)
+                # print('RUN')
+                result = dask_run(local_file, mod.load_module(), metadata)
+            return result
+        except:
+            return('Arrrrrrrghhhhhhhhhhhhhhhhh')
 
     @contextmanager
     def make_session(self):

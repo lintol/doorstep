@@ -171,8 +171,9 @@ class Report:
     @classmethod
     def parse(cls, dictionary):
         issues = {}
-
+        logging.warn("Something with tables %s " % dictionary['tables'][0])
         table = dictionary['tables'][0]
+        # table = dictionary[0]
 
         issues[logging.ERROR] = [
             ReportIssue.parse(logging.ERROR, issue)
