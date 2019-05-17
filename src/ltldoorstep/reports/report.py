@@ -171,26 +171,27 @@ class Report:
     @classmethod
     def parse(cls, dictionary):
         issues = {}
-        logging.warn("Something with tables %s " % dictionary['tables'][0])
+        # logging.warn("Something with tables %s " % dictionary['tables'][0])
+        # print("*****type check**** %s" % type(dictionary['tables'][0]))
         table = dictionary['tables'][0]
-        # table = dictionary[0]
+        # print("*****type check**** %s" % type(dictionary))
 
         issues[logging.ERROR] = [
             ReportIssue.parse(logging.ERROR, issue)
             for issue in
-            table['errors']
+                table['errors']
         ]
 
         issues[logging.WARNING] = [
             ReportIssue.parse(logging.WARNING, issue)
             for issue in
-            table['warnings']
+                table['warnings']
         ]
 
         issues[logging.INFO] = [
             ReportIssue.parse(logging.INFO, issue)
             for issue in
-            table['informations']
+                table['informations']
         ]
 
         filename = dictionary['filename']

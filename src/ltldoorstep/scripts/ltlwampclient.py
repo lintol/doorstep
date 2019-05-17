@@ -68,7 +68,7 @@ def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
     from ckanapi import RemoteCKAN
     client = RemoteCKAN(url, user_agent='lintol-doorstep-crawl/1.0 (+http://lintol.io)')
 
-    if not watch:
+    if watch:
         resources = client.action.resource_search(query='format:csv')
         print(resources)
         if 'results' in resources:
@@ -98,6 +98,4 @@ def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
                     print(result)
                     if result:
                         printer.build_report(result)
-                    else:
-                        printer.build_report("Nope")
         printer.print_output()
