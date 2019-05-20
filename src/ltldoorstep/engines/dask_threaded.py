@@ -123,11 +123,31 @@ class DaskThreadedEngine(Engine):
 
         mod = SourceFileLoader('custom_processor', workflow_module)
 
+<<<<<<< Updated upstream
         result = None
         with make_file_manager(bucket) as file_manager:
             local_file = file_manager.get(filename)
             result = dask_run(local_file, mod.load_module(), metadata)
         return result
+||||||| merged common ancestors
+        try:
+            result = None
+            with make_file_manager(bucket) as file_manager:
+                local_file = file_manager.get(filename)
+                result = dask_run(local_file, mod.load_module(), metadata)
+            return result
+        except:
+            return None
+=======
+        try:
+            result = None
+            with make_file_manager(bucket) as file_manager:
+                local_file = file_manager.get(filename)
+                result = dask_run(local_file, mod.load_module(), metadata)
+            return result
+        except Exception as e:
+            print(e, type(e))
+>>>>>>> Stashed changes
 
     @contextmanager
     def make_session(self):
