@@ -94,14 +94,16 @@ def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
             # logging.warn("Package name? %s" % package)
             for resource in resources:
                 r = requests.get(resource['url'])
-            
                 with make_file_manager(content={'data.csv': r.text}) as file_manager:
-                    logging.warn("in the for loop with resources %s " % resource)
-                    filename = file_manager.get('data.csv')
-                    result = launch_wamp(router_url, filename, workflow, printer, ini)
-                    print(result)
-                    if result:
-                        printer.build_report(result)
+                    try:
+                        logging.warn("in the for loop with resources %s " % resource)
+                        filename = file_manager.get('data.csv')
+                        result = launch_wamp(router_url, filename, workflow, printer, ini)
+                        print(result)
+                        if result:
+                            printer.build_report(result)
+                    except Exception as e:
+                        logging.error("launch_wamp error")
         printer.print_output()
 
 @cli.command()

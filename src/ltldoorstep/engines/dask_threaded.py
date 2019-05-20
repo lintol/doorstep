@@ -123,14 +123,11 @@ class DaskThreadedEngine(Engine):
 
         mod = SourceFileLoader('custom_processor', workflow_module)
 
-        try:
-            result = None
-            with make_file_manager(bucket) as file_manager:
-                local_file = file_manager.get(filename)
-                result = dask_run(local_file, mod.load_module(), metadata)
-            return result
-        except:
-            return None
+        result = None
+        with make_file_manager(bucket) as file_manager:
+            local_file = file_manager.get(filename)
+            result = dask_run(local_file, mod.load_module(), metadata)
+        return result
 
     @contextmanager
     def make_session(self):

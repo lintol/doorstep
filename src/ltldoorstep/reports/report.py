@@ -172,8 +172,8 @@ class Report:
     @classmethod
     def parse(cls, dictionary):
         issues = {}
-        logging.warn("Something with tables %s " % dictionary['tables'][0])
-        print("*****type check**** %s" % type(dictionary['tables'][0]))
+        # logging.warn("Something with tables %s " % dictionary['tables'][0])
+        # print("*****type check**** %s" % type(dictionary['tables'][0]))
         # table = {}
         table = dictionary['tables'][0]
         # print("*****type check**** %s" % type(dictionary))
