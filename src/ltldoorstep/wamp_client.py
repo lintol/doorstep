@@ -11,7 +11,7 @@ import asyncio
 
 from .wamp_server import DoorstepComponent, SessionSet
 from .ini import DoorstepIni
-from .metadata import DoorstepMetadata
+from .metadata import DoorstepContext
 
 class WampClientComponent(ApplicationSession):
     """Connector to join and execute a WAMP session."""

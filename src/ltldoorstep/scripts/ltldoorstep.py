@@ -4,6 +4,7 @@ import gettext
 from ltldoorstep import printer
 from ltldoorstep.config import load_config
 from ltldoorstep.engines import engines
+from ltldoorstep.metadata import DoorstepContext
 import asyncio
 import logging
 
@@ -84,8 +85,10 @@ def status(ctx):
 @click.argument('workflow', 'Python workflow module')
 @click.option('-e', '--engine', required=True)
 @click.option('-m', '--metadata', default=None)
+@click.option('-p', '--package', default=None)
+@click.option('-s', '--settings', default=None)
 @click.pass_context
-def process(ctx, filename, workflow, engine, metadata):
+def process(ctx, filename, workflow, engine, metadata, package, settings):
     printer = ctx.obj['printer']
     config = ctx.obj['config']
     bucket = ctx.obj['bucket']
@@ -99,6 +102,19 @@ def process(ctx, filename, workflow, engine, metadata):
     else:
         with open(metadata, 'r') as metadata_file:
             metadata = json.load(metadata_file)
+
+    context_args = {}
+
+    if package:
+        if package != '.':
+            metadata = metadata[package]
+        context_args['context_package'] = metadata
+
+    if settings:
+        context_args['settings'] = json.loads(settings)
+
+    if context_args:
+        metadata = DoorstepContext(**context_args)
 
     loop = asyncio.get_event_loop()
     result = loop.run_until_complete(engine.run(filename, workflow, metadata, bucket=bucket))

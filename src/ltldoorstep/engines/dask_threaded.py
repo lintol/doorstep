@@ -80,7 +80,6 @@ class DaskThreadedEngine(Engine):
     async def get_output(self, session):
         await session['completion'].acquire()
 
-        print(session)
         result = session['result']
 
         session['completion'].release()
@@ -102,9 +101,7 @@ class DaskThreadedEngine(Engine):
                 workflow_module = workflow_module.decode('utf-8')
 
             metadata = processor['metadata']
-            print(processor, 'B')
             with make_file_manager(content={filename: content, processor['filename']: workflow_module}) as file_manager:
-                print(file_manager.get(processor['filename']), processor['filename'], workflow_module, 'A')
                 mod = SourceFileLoader('custom_processor', file_manager.get(processor['filename']))
                 local_file = file_manager.get(filename)
                 report = dask_run(local_file, mod.load_module(), metadata, compiled=False)
@@ -122,7 +119,6 @@ class DaskThreadedEngine(Engine):
         result = None
         with make_file_manager(bucket) as file_manager:
             local_file = file_manager.get(filename)
-            print('RUN')
             result = dask_run(local_file, mod.load_module(), metadata)
 
         return result

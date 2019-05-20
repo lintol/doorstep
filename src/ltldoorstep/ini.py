@@ -1,5 +1,5 @@
 import json
-from .metadata import DoorstepMetadata
+from .metadata import DoorstepContext
 
 class DoorstepIni:
     def __init__(self, lang=None, definitions={}, context_package=None):
@@ -41,7 +41,7 @@ class DoorstepIni:
         if 'definitions' in dct:
             kwargs['definitions'] = {}
             for d, processor in dct['definitions'].items():
-                kwargs['definitions'][d] = DoorstepMetadata.from_dict(processor)
+                kwargs['definitions'][d] = DoorstepContext.from_dict(processor)
 
         if 'lang' in dct:
             kwargs['lang'] = dct['lang']

@@ -1,7 +1,7 @@
 import json
 
-class DoorstepMetadata:
-    def __init__(self, lang=None, module=None, docker_image=None, docker_revision=None, context_package=None, settings={}, configuration={}, supplementary=None):
+class DoorstepContext:
+    def __init__(self, lang=None, module=None, docker_image=None, docker_revision=None, context_package=None, settings={}, configuration={}, supplementary=None, context_format=None):
         self.lang = lang
         self.docker = {
             'image': docker_image,
@@ -12,12 +12,18 @@ class DoorstepMetadata:
         self.settings = settings
         self.configuration = configuration
         self.supplementary = supplementary
+        self.context_format = context_format
 
     def __repr__(self):
-        return "<DoorstepMetadata: {}>".format(self.to_dict())
+        return "<DoorstepContext: {}>".format(self.to_dict())
 
     def has_package(self):
-        return bool(self.context["package"])
+        return bool(self.package)
+
+    def get_setting(self, setting, default=None):
+        if setting in self.settings:
+            return self.settings[setting]
+        return default
 
     @property
     def package(self):
@@ -47,6 +53,8 @@ class DoorstepMetadata:
         if 'context' in dct:
             if 'package' in dct['context'] and dct['context']['package']:
                 kwargs['context_package'] = dct['context']['package']
+            if 'format' in dct['context'] and dct['context']['format']:
+                kwargs['context_format'] = dct['context']['format']
 
         if 'settings' in dct:
             kwargs['settings'] = dct['settings']
@@ -71,7 +79,8 @@ class DoorstepMetadata:
             'docker': dict(self.docker),
             'lang': self.lang,
             'context': {
-                'package': package
+                'package': package,
+                'format': self.context_format
             },
             'settings': dict(self.settings),
             'configuration': dict(self.configuration),

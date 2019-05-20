@@ -18,7 +18,7 @@ import json
 from .engine import Engine
 from ..encoders import json_dumps
 from ..errors import LintolDoorstepException, LintolDoorstepContainerException
-from ..metadata import DoorstepMetadata
+from ..metadata import DoorstepContext
 from ..ini import DoorstepIni
 
 
