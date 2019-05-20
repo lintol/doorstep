@@ -21,24 +21,25 @@ import json
 METADATA_ROWS = {
     'name': lambda x: [x['name']] if 'name' in x else [],
     'notes': lambda x: [x['notes']] if 'notes' in x else [],
-    'resource name': lambda x: [r['name'] for r in x['resources'] if 'name' in r],
-    'resource description': lambda x: [r['description'] for r in x['resources']],
-    'group title': lambda x: [r['title'] for r in x['groups']],
-    'tags': lambda x: [r['name'] for r in x['tags']],
+    'resource name': lambda x: [r['name'] for r in x['resources'] if 'name' in r] if 'resources' in x else [],
+    'resource description': lambda x: [r['description'] for r in x['resources']] if 'resources' in x else [],
+    'group title': lambda x: [r['title'] for r in x['groups']] if 'groups' in x else [],
+    'tags': lambda x: [r['name'] for r in x['tags']] if 'tags' in x else [],
     'topicCategories': lambda x: x['topic_category'] if 'topic_category' in x else []
 }
 
-def get_sentences_from_metadata(metadata):
+def get_sentences_from_metadata(context):
     data_lines = []
-    pkg_metadata = metadata.package
+    pkg_metadata = context.package
 
     for k, extractor in METADATA_ROWS.items():
         data_lines += [(k, v) for v in extractor(pkg_metadata)]
+    print(data_lines)
 
     return data_lines
 
-def get_categories(sentences, metadata):
-    category_server = metadata.get_setting('categoryServerUrl', 'http://localhost:8000/')
+def get_categories(sentences, context):
+    category_server = context.get_setting('categoryServerUrl', 'http://localhost:8000/')
     result = requests.post(category_server, json={'sentences': sentences})
 
     if result.status_code == 400:
@@ -51,11 +52,11 @@ def get_categories(sentences, metadata):
 def get_sentences_from_data(csv):
     return []
 
-def classify_sentences(rprt, data_sentences, metadata_sentences, metadata):
+def classify_sentences(rprt, data_sentences, metadata_sentences, context):
     sentences = data_sentences + metadata_sentences
 
     keys, sentences = zip(*sentences)
-    results = get_categories(sentences, metadata)
+    results = get_categories(sentences, context)
 
     for key, result in zip(keys, results):
         result = sorted(result, key=lambda r: r[0], reverse=True)
