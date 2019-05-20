@@ -29,8 +29,8 @@ class WampClientComponent(ApplicationSession):
     async def onJoin(self, details):
         """When we join the server, execute the client workflow."""
 
-        with open(self._filename, 'r') as file_obj:
-            content = file_obj.read()
+        #with open(self._filename, 'r') as file_obj:
+        #    content = file_obj.read()
         filename = os.path.basename(self._filename)
 
         with open(self._workflow, 'r') as file_obj:
@@ -57,16 +57,20 @@ class WampClientComponent(ApplicationSession):
 
         print('C', ini.to_dict()['definitions'])
         await self.call_server('processor.post', {workflow: module}, ini.to_dict())
-        await self.call_server('data.post', filename, content, False)
+        content = "file://{}".format(os.path.abspath(self._filename))
+
+        logging.error("Sending: {}".format(content))
+        await self.call_server('data.post', filename, content, True)
 
         try:
-            result = json.loads(await self.call_server('report.get'))
+            result = await self.call_server('report.get')
         except ApplicationError as e:
             logging.error(e)
             result = None
 
-        if self._printer and result:
-            self._printer.build_report(result)
+        #temp commented out
+        # if self._printer and result:
+            # self._printer.build_report(result)
 
         # Stop and return control
         loop = asyncio.get_event_loop()
@@ -78,12 +82,15 @@ class WampClientComponent(ApplicationSession):
     async def call_server(self, endpoint, *args, **kwargs):
         """Generate the correct endpoint for the known server."""
 
-        return await self.call(
-            'com.ltldoorstep.{server}.{endpoint}'.format(server=self._server, endpoint=endpoint),
-            self._session,
-            *args,
-            **kwargs
-        )
+        try:
+            return await self.call(
+                'com.ltldoorstep.{server}.{endpoint}'.format(server=self._server, endpoint=endpoint),
+                self._session,
+                *args,
+                **kwargs
+            )
+        except:
+            return "error"
 
 
 def launch_wamp_real(router_url, filename, workflow, printer, ini):

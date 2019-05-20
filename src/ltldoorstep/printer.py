@@ -53,7 +53,7 @@ class TermColorPrinter(Printer):
         results = []
 
         report = Report.parse(result_sets)
-        logging.warn("Report ***** %s " % report)
+        # logging.warn("Report ***** %s " % report)
 
         for log_level in LEVEL_MAPPING:
             for issue in report.get_issues(log_level):

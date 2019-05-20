@@ -10,6 +10,7 @@ from ..file import make_file_manager
 from ..encoders import json_dumps
 from .dask_common import run as dask_run
 from .engine import Engine
+import asyncio
 from asyncio import Lock, ensure_future, Queue
 from ..ini import DoorstepIni
 
@@ -61,13 +62,13 @@ class DaskThreadedEngine(Engine):
 
         # currently crashing here for a large dataset....
         async def run_when_ready():
-            logging.warn("1. Running when ready ************")
             session['completion'].acquire()
             # error here
-            logging.warn('Session var here before data is set %s' % session['queue'])
+            # session doesn't seem to be yielding before it crashes
             data = await session['queue'].get()
             logging.warn('Session var here after data is set %s' % session['queue'])
             if data == 0:
+                logging.warn("Releasing session")
                 session['completion'].release()
             try:
                 result = await self.run_with_content(data['filename'], data['content'], session['processors'])
@@ -78,7 +79,7 @@ class DaskThreadedEngine(Engine):
                 session['result'] = error
             finally:
                 session['completion'].release()
-
+                logging.warn("EXCEPTION HERE?************")
         ensure_future(run_when_ready())
 
         return (False, session['completion'].acquire())
@@ -149,5 +150,5 @@ class DaskThreadedEngine(Engine):
             'data': data_name,
             'queue': Queue()
         }
-
+        logging.warn("Yeiling session - %s " % session)
         yield session

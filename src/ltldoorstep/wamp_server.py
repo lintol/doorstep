@@ -75,14 +75,18 @@ class DataResource():
         logging.warn(_("Data posted"))
         logging.warn(redirect)
         if redirect:
-            r = requests.get(content, stream=True)
-            if r.status_code != 200:
-                raise RuntimeError(_("Could not retrieve supplementary data: %d") % r.status_code)
+            if content.startswith('file://'):
+                with open(content[len('file://'):], 'r') as file_obj:
+                    content = file_obj.read()
+            else:
+                r = requests.get(content, stream=True)
+                if r.status_code != 200:
+                    raise RuntimeError(_("Could not retrieve supplementary data: %d") % r.status_code)
 
-            logging.warn(_("Downloading %s") % content)
-            content = ''
-            for chunk in r.iter_content(chunk_size=1024):
-                content += chunk.decode('utf-8')
+                logging.warn(_("Downloading %s") % content)
+                content = ''
+                for chunk in r.iter_content(chunk_size=1024):
+                    content += chunk.decode('utf-8')
 
         return self._engine.add_data(filename, content.encode('utf-8'), redirect, session)
 
@@ -147,9 +151,13 @@ class DoorstepComponent(ApplicationSession):
             print(_("Engaging for session %s") % session['name'])
 
             # Kick off observer coro
-            __, monitor_output = await self._engine.monitor_pipeline(session)
-            monitor_output = asyncio.ensure_future(monitor_output)
-
+            try:
+                __, monitor_output = await self._engine.monitor_pipeline(session)
+                monitor_output = asyncio.ensure_future(monitor_output)
+            except Exception as e:
+                print("ERRORROROROR", e)
+                session['monitor_output'] = asyncio.sleep(1.0)
+                return (self._id, session['name'])
             def output_results(output):
                 logging.warn('outputting')
                 return self.publish(

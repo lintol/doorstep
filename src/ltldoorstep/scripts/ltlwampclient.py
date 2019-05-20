@@ -68,7 +68,7 @@ def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
     from ckanapi import RemoteCKAN
     client = RemoteCKAN(url, user_agent='lintol-doorstep-crawl/1.0 (+http://lintol.io)')
 
-    if watch:
+    if not watch:
         resources = client.action.resource_search(query='format:csv')
         print(resources)
         if 'results' in resources:
@@ -87,10 +87,48 @@ def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
         logging.warn('**** in the else block')
         for package in packages:
             logging.warn("Package name? %s" % package)
+            # package_metadata = client.action.package_show(id=package)
             package_metadata = client.action.package_show(id=package)
             ini = DoorstepIni(context_package=package_metadata)
             resources = ini.package['resources']
+            # logging.warn("Package name? %s" % package)
             for resource in resources:
+                r = requests.get(resource['url'])
+            
+                with make_file_manager(content={'data.csv': r.text}) as file_manager:
+                    logging.warn("in the for loop with resources %s " % resource)
+                    filename = file_manager.get('data.csv')
+                    result = launch_wamp(router_url, filename, workflow, printer, ini)
+                    print(result)
+                    if result:
+                        printer.build_report(result)
+        printer.print_output()
+
+@cli.command()
+@click.argument('workflow', 'Python workflow module')
+@click.argument('package', 'Package ID')
+@click.option('--url', required=True)
+@click.option('--watch/--no-watch', help='Should this keep running indefinitely?', default=False)
+@click.option('--watch-refresh-delay', help='How long until this calls the given CKAN target again', default='60s')
+@click.option('--watch-persist-to', default=None)
+@click.pass_context
+def find_package(ctx, workflow, package, url, watch, watch_refresh_delay, watch_persist_to):
+    printer = ctx.obj['printer']
+    router_url = ctx.obj['router_url']
+
+    if watch_persist_to:
+        watch = True
+
+    ini = None
+
+    from ckanapi import RemoteCKAN
+    client = RemoteCKAN(url, user_agent='lintol-doorstep-crawl/1.0 (+http://lintol.io)')
+
+    if not watch:
+        resources = client.action.resource_search(query='format:csv')
+        print(resources)
+        if 'results' in resources:
+            for resource in resources['results']:
                 r = requests.get(resource['url'])
                 with make_file_manager(content={'data.csv': r.text}) as file_manager:
                     filename = file_manager.get('data.csv')
