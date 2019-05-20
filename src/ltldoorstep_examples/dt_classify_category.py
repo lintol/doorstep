@@ -20,7 +20,7 @@ import json
 
 METADATA_ROWS = {
     'name': lambda x: [x['name']] if 'name' in x else [],
-    'notes': lambda x: [x['notes']],
+    'notes': lambda x: [x['notes']] if 'notes' in x else [],
     'resource name': lambda x: [r['name'] for r in x['resources'] if 'name' in r],
     'resource description': lambda x: [r['description'] for r in x['resources']],
     'group title': lambda x: [r['title'] for r in x['groups']],
@@ -37,8 +37,9 @@ def get_sentences_from_metadata(metadata):
 
     return data_lines
 
-def get_categories(sentences):
-    result = requests.post('http://localhost:8000/', json=sentences)
+def get_categories(sentences, metadata):
+    category_server = metadata.get_setting('categoryServerUrl', 'http://localhost:8000/')
+    result = requests.post(category_server, json={'sentences': sentences})
 
     if result.status_code == 400:
         raise RuntimeError(_("Malformed category request: ") + result.content.decode('utf-8'))
@@ -50,19 +51,20 @@ def get_categories(sentences):
 def get_sentences_from_data(csv):
     return []
 
-def classify_sentences(rprt, data_sentences, metadata_sentences):
+def classify_sentences(rprt, data_sentences, metadata_sentences, metadata):
     sentences = data_sentences + metadata_sentences
 
     keys, sentences = zip(*sentences)
-    results = get_categories(sentences)
+    results = get_categories(sentences, metadata)
 
     for key, result in zip(keys, results):
         result = sorted(result, key=lambda r: r[0], reverse=True)
-        issue_text = _("Possible categories in {}: {}").format(key, ", ".join(["{} ({:.2f}%)".format(_(c), r * 100) for r, c in result if r > 0.3]))
+        issue_text = _("Possible categories in {}: {}").format(key, ", ".join(["{} ({:.2f}%)".format(_(c), r * 100) for r, c in result if r > 0.2]))
+        slug_key = key.lower().replace(' ', '-')
 
         rprt.add_issue(
             logging.INFO,
-            'possible-categories-overall',
+            'possible-categories-{}'.format(slug_key),
             issue_text,
             error_data=results,
             at_top=True
@@ -79,13 +81,13 @@ class DTClassifyCategoryProcessor(DoorstepProcessor):
             _("Data Times Category Classification Processor")
         )
 
-    def get_workflow(self, filename, metadata={}):
+    def get_workflow(self, filename, metadata):
         # setting up workflow dict
         workflow = {
             'load_csv': (p.read_csv, filename),
             'sentences_from_data': (get_sentences_from_data, 'load_csv'),
             'sentences_from_metadata': (get_sentences_from_metadata, self.metadata),
-            'output': (classify_sentences, self._report, 'sentences_from_data', 'sentences_from_metadata')
+            'output': (classify_sentences, self._report, 'sentences_from_data', 'sentences_from_metadata', self.metadata)
         }
         return workflow
 

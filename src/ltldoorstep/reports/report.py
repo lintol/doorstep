@@ -5,6 +5,7 @@ The Report superclass can be inherited for different forms of reporting i.e. tab
 import logging
 import json
 import os
+from ..metadata import DoorstepContext
 
 def get_report_class_from_preset(preset):
     if preset not in _report_class_from_preset:
@@ -196,11 +197,16 @@ class Report:
         ]
 
         filename = dictionary['filename']
-        metadata = {
-            'fileType': table['format']
-        }
+
+        if 'metadata' in dictionary:
+            if isinstance(dictionary['metadata'], DoorstepContext):
+                metadata = dictionary['metadata']
+            else:
+                metadata = DoorstepContext.from_dict(dictionary['metadata'])
+        else:
+            metadata = DoorstepContext(context_format=table['format'])
+
         supplementary = dictionary['supplementary']
-        logging.warning(supplementary)
         row_count = table['row-count'] if 'time' in table else None
         time = table['time'] if 'time' in table else None
         encoding = table['encoding'] if 'encoding' in table else None
@@ -244,8 +250,8 @@ class Report:
         if metadata is None:
             metadata = self.metadata
 
-        if metadata and 'fileType' in metadata:
-            frmt = metadata['fileType']
+        if metadata and metadata.context_format:
+            frmt = metadata.context_format
         else:
             root, frmt = os.path.splitext(filename)
             if frmt and frmt[0] == '.':

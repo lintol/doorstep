@@ -2,7 +2,7 @@ import os
 import logging
 
 from .reports.report import Report, get_report_class_from_preset, combine_reports
-from .metadata import DoorstepMetadata
+from .metadata import DoorstepContext
 
 class DoorstepProcessor:
     preset = None
@@ -17,7 +17,7 @@ class DoorstepProcessor:
     @metadata.setter
     def metadata(self, metadata):
         if type(metadata) is dict:
-            metadata = DoorstepMetadata.from_dict(metadata)
+            metadata = DoorstepContext.from_dict(metadata)
         self._metadata = metadata
 
     @classmethod
@@ -58,8 +58,10 @@ class DoorstepProcessor:
         self._report = report
 
     def build_workflow(self, filename, metadata={}):
+        if not isinstance(metadata, DoorstepContext):
+            metadata = DoorstepContext.from_dict(metadata)
         self.metadata = metadata
         return self.get_workflow(filename, metadata)
 
-    def get_workflow(self, filename, metadata={}):
+    def get_workflow(self, filename, metadata):
         return {}

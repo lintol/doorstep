@@ -87,7 +87,10 @@ class DaskThreadedEngine(Engine):
     async def get_output(self, session):
         await session['completion'].acquire()
 
+<<<<<<< HEAD
         # print(session)
+=======
+>>>>>>> e2230e70be4d2a0f970631db26b09a607d13d563
         result = session['result']
 
         session['completion'].release()
@@ -109,9 +112,13 @@ class DaskThreadedEngine(Engine):
                 workflow_module = workflow_module.decode('utf-8')
 
             metadata = processor['metadata']
+<<<<<<< HEAD
             # print(processor, 'B')
             with make_file_manager(content={filename: content, processor['filename']: workflow_module}) as file_manager:
                 # print(file_manager.get(processor['filename']), processor['filename'], workflow_module, 'A')
+=======
+            with make_file_manager(content={filename: content, processor['filename']: workflow_module}) as file_manager:
+>>>>>>> e2230e70be4d2a0f970631db26b09a607d13d563
                 mod = SourceFileLoader('custom_processor', file_manager.get(processor['filename']))
                 local_file = file_manager.get(filename)
                 report = dask_run(local_file, mod.load_module(), metadata, compiled=False)
@@ -125,6 +132,7 @@ class DaskThreadedEngine(Engine):
         """Start the multi-threaded execution process."""
 
         mod = SourceFileLoader('custom_processor', workflow_module)
+<<<<<<< HEAD
         try:
             result = None
             with make_file_manager(bucket) as file_manager:
@@ -134,6 +142,15 @@ class DaskThreadedEngine(Engine):
             return result
         except:
             return('Arrrrrrrghhhhhhhhhhhhhhhhh')
+=======
+
+        result = None
+        with make_file_manager(bucket) as file_manager:
+            local_file = file_manager.get(filename)
+            result = dask_run(local_file, mod.load_module(), metadata)
+
+        return result
+>>>>>>> e2230e70be4d2a0f970631db26b09a607d13d563
 
     @contextmanager
     def make_session(self):
