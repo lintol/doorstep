@@ -125,7 +125,7 @@ def find_package(ctx, workflow, package, url, watch, watch_refresh_delay, watch_
     client = RemoteCKAN(url, user_agent='lintol-doorstep-crawl/1.0 (+http://lintol.io)')
 
     if not watch:
-        resources = client.action.resource_search(query='format:csv')
+        resources = client.action.resource_search(query='name:' + package)
         print(resources)
         if 'results' in resources:
             for resource in resources['results']:
