@@ -131,7 +131,6 @@ class HtmlPrinter(Printer):
         general_output = []
         results = []
 
-        logging.warn("Report ***** %s " % report)
         report = Report.parse(result_sets)
 
         for log_level in LEVEL_MAPPING:
