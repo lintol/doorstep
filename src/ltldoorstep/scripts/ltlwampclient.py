@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import click
 import time
 import pandas
@@ -7,6 +8,9 @@ import logging
 import gettext
 import requests
 
+=======
+import click, time, datetime, json, logging, gettext, requests
+>>>>>>> Stashed changes
 from ltldoorstep import printer
 from ltldoorstep.file import make_file_manager
 from ltldoorstep.wamp_client import launch_wamp
@@ -60,10 +64,17 @@ def process(ctx, filename, workflow, metadata):
 @click.option('--watch-persist-to', default=None)
 @click.pass_context
 def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
+<<<<<<< Updated upstream
     #TODO modify watch to find newly added datasets
     # & pass the timestamp
     # when the watch command is used, record timestamp, and ask for everything since last time stamp
 
+=======
+    """
+    Crawl function gets the URL of all packages in the CKAN instance.
+    The '--watch' option will look for any new package resources based on a time interval
+    """
+>>>>>>> Stashed changes
     printer = ctx.obj['printer']
     router_url = ctx.obj['router_url']
 
@@ -90,20 +101,34 @@ def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
         printer.print_output()
     else:
         while True:
+<<<<<<< Updated upstream
             timestamp = datetime.datetime.now()
             packages = client.action.package_list()
             logging.warn("Running watch command")
             for package in packages:
                 time.sleep(5)
                 logging.warn("Package name? %s" % package)
+=======
+            packages = client.action.package_list()
+            for package in packages:
+                logging.warn("Getting %s & waiting 5 seconds" % package)
+                time.sleep(5)
+>>>>>>> Stashed changes
                 package_metadata = client.action.package_show(id=package)
                 ini = DoorstepIni(context_package=package_metadata)
                 resources = ini.package['resources']
                 for resource in resources:
+<<<<<<< Updated upstream
                     r = requests.get(resource['url'])
                     with make_file_manager(content={'data.csv': r.text}) as file_manager:
                         try:
                             logging.warn("in the for loop with resources %s " % resource)
+=======
+                    logging.warn("getting resources - %s" % resource)
+                    r = requests.get(resource['url'])
+                    with make_file_manager(content={'data.csv': r.text}) as file_manager:
+                        try:
+>>>>>>> Stashed changes
                             filename = file_manager.get('data.csv')
                             result = launch_wamp(router_url, filename, workflow, printer, ini)
                             print(result)
@@ -124,17 +149,18 @@ def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
 @click.option('--watch-persist-to', default=None)
 @click.pass_context
 def find_package(ctx, workflow, package, url, watch, watch_refresh_delay, watch_persist_to):
+    """
+    Find Package searches for a specific package and returns the information as metadata
+    """
     printer = ctx.obj['printer']
     router_url = ctx.obj['router_url']
 
     if watch_persist_to:
         watch = True
-
     ini = None
-
+    
     from ckanapi import RemoteCKAN
     client = RemoteCKAN(url, user_agent='lintol-doorstep-crawl/1.0 (+http://lintol.io)')
-
     if not watch:
         resources = client.action.resource_search(query='name:' + package)
         print(resources)
