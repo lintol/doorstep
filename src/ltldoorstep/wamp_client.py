@@ -38,7 +38,7 @@ class WampClientComponent(ApplicationSession):
         workflow = os.path.basename(self._workflow)
 
         definitions = {
-            str(uuid.uuid4()): DoorstepMetadata.from_dict({
+            str(uuid.uuid4()): DoorstepContext.from_dict({
                 'module': workflow
             })
         }

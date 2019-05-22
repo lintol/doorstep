@@ -1,4 +1,7 @@
 import click
+import time
+import pandas
+import datetime
 import json
 import logging
 import gettext
@@ -57,6 +60,10 @@ def process(ctx, filename, workflow, metadata):
 @click.option('--watch-persist-to', default=None)
 @click.pass_context
 def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
+    #TODO modify watch to find newly added datasets
+    # & pass the timestamp
+    # when the watch command is used, record timestamp, and ask for everything since last time stamp
+
     printer = ctx.obj['printer']
     router_url = ctx.obj['router_url']
 
@@ -82,29 +89,31 @@ def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
                         printer.build_report(result)
         printer.print_output()
     else:
-        # logging.warn('**** in the else block')
-        packages = client.action.package_list()
-        logging.warn('**** in the else block')
-        for package in packages:
-            logging.warn("Package name? %s" % package)
-            # package_metadata = client.action.package_show(id=package)
-            package_metadata = client.action.package_show(id=package)
-            ini = DoorstepIni(context_package=package_metadata)
-            resources = ini.package['resources']
-            # logging.warn("Package name? %s" % package)
-            for resource in resources:
-                r = requests.get(resource['url'])
-                with make_file_manager(content={'data.csv': r.text}) as file_manager:
-                    try:
-                        logging.warn("in the for loop with resources %s " % resource)
-                        filename = file_manager.get('data.csv')
-                        result = launch_wamp(router_url, filename, workflow, printer, ini)
-                        print(result)
-                        if result:
-                            printer.build_report(result)
-                    except Exception as e:
-                        logging.error("launch_wamp error")
-        printer.print_output()
+        while True:
+            timestamp = datetime.datetime.now()
+            packages = client.action.package_list()
+            logging.warn("Running watch command")
+            for package in packages:
+                time.sleep(5)
+                logging.warn("Package name? %s" % package)
+                package_metadata = client.action.package_show(id=package)
+                ini = DoorstepIni(context_package=package_metadata)
+                resources = ini.package['resources']
+                for resource in resources:
+                    r = requests.get(resource['url'])
+                    with make_file_manager(content={'data.csv': r.text}) as file_manager:
+                        try:
+                            logging.warn("in the for loop with resources %s " % resource)
+                            filename = file_manager.get('data.csv')
+                            result = launch_wamp(router_url, filename, workflow, printer, ini)
+                            print(result)
+                            if result:
+                                printer.build_report(result)
+                        except Exception as e:
+                            logging.error("launch_wamp error")
+            logging.warn("waiting 10 secs")
+            time.sleep(10)
+            printer.print_output()
 
 @cli.command()
 @click.argument('workflow', 'Python workflow module')
