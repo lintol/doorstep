@@ -1,16 +1,4 @@
-<<<<<<< Updated upstream
-import click
-import time
-import pandas
-import datetime
-import json
-import logging
-import gettext
-import requests
-
-=======
 import click, time, datetime, json, logging, gettext, requests
->>>>>>> Stashed changes
 from ltldoorstep import printer
 from ltldoorstep.file import make_file_manager
 from ltldoorstep.wamp_client import launch_wamp
@@ -96,11 +84,6 @@ def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
         while True:
             timestamp = datetime.datetime.now()
             packages = client.action.package_list()
-            logging.warn("Running watch command")
-            for package in packages:
-                time.sleep(5)
-                logging.warn("Package name? %s" % package)
-            packages = client.action.package_list()
             for package in packages:
                 logging.warn("Getting %s & waiting 5 seconds" % package)
                 time.sleep(5)
@@ -108,11 +91,6 @@ def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
                 ini = DoorstepIni(context_package=package_metadata)
                 resources = ini.package['resources']
                 for resource in resources:
-                    r = requests.get(resource['url'])
-                    with make_file_manager(content={'data.csv': r.text}) as file_manager:
-                        try:
-                            logging.warn("in the for loop with resources %s " % resource)
-                    logging.warn("getting resources - %s" % resource)
                     r = requests.get(resource['url'])
                     with make_file_manager(content={'data.csv': r.text}) as file_manager:
                         try:
