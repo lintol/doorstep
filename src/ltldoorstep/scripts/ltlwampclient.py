@@ -1,4 +1,11 @@
-import click, time, datetime, json, logging, gettext, requests
+import click
+import time
+import datetime
+import json
+import csv
+import logging
+import gettext
+import requests
 from ltldoorstep import printer
 from ltldoorstep.file import make_file_manager
 from ltldoorstep.wamp_client import launch_wamp
@@ -67,31 +74,37 @@ def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
     client = RemoteCKAN(url, user_agent='lintol-doorstep-crawl/1.0 (+http://lintol.io)')
 
     if watch:
-        # watch(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to)
-        starting_time = datetime.datetime.now()
-        starting_package_list = client.action.package_list()
-        for package in starting_package_list:
-            logging.warn("Getting %s & waiting 5 seconds" % package)
-            time.sleep(5)
-            package_metadata = client.action.package_show(id=package) 
-            ini = DoorstepIni(context_package=package_metadata)
-            resources = ini.package['resources']
-            for resource in resources:
-                logging.warn("Getting resource from package - %s " % resource )
-                r = requests.get(resource['url'])
-                with make_file_manager(content={'data.csv': r.text}) as file_manager:
-                    try:
-                        filename = file_manager.get('data.csv')
-                        result = launch_wamp(router_url, filename, workflow, printer, ini)
-                        # launch_wamp connects to crossbar (which acts as the wamp router) to communicate with the ckan instance
-                        if result:
-                            printed_result = printer.build_report(result)
-                            print(printed_result)
-                    except Exception as e:
-                        logging.error("launch_wamp error - %s" % e)
-        logging.warn("waiting 60 secs")
-        time.sleep(60)
-        printer.print_output()
+        while True:
+            starting_package_list = client.action.package_list()
+            for package in starting_package_list:
+                logging.warn("Getting %s & waiting 5 seconds" % package)
+                time.sleep(5)
+                package_metadata = client.action.package_show(id=package)
+                # ^ json objs
+                ini = DoorstepIni(context_package=package_metadata) # classes = studley case
+                resources = ini.package['resources']
+                # ^ creating a list
+                for resource in resources: # loops through list of resources to get response obj
+                    # resource is a dict
+                    logging.warn("Getting resource from package - %s " % resource )
+                    r = requests.get(resource['url'])
+                    logging.warn("Timestamp is %s " % resource['created'])
+                    # need to sort out types to find the difference between times
+                    time_difference = datetime.datetime.now() - resource['created']
+                    if time_difference < 60:
+                        with make_file_manager(content={'data.csv': r.text}) as file_manager:
+                            try:
+                                filename = file_manager.get('data.csv')
+                                result = launch_wamp(router_url, filename, workflow, printer, ini)
+                                # launch_wamp connects to crossbar (which acts as the wamp router) to communicate with the ckan instance
+                                if result:
+                                    printed_result = printer.build_report(result)
+                                    print(printed_result)
+                            except Exception as e:
+                                logging.error("launch_wamp error - %s" % e)
+            logging.warn("waiting 60 secs")
+            time.sleep(60)
+            printer.print_output()
 
     else:
         resources = client.action.resource_search(query='format:csv')
@@ -128,7 +141,6 @@ def watch(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
 
     from ckanapi import RemoteCKAN
     client = RemoteCKAN(url, user_agent='lintol-doorstep-crawl/1.0 (+http://lintol.io)')
-    starting_time = datetime.datetime.now()
     starting_package_list = client.action.package_list()
     for package in starting_package_list:
         logging.warn("Getting %s & waiting 5 seconds" % package)
