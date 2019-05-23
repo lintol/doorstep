@@ -64,17 +64,10 @@ def process(ctx, filename, workflow, metadata):
 @click.option('--watch-persist-to', default=None)
 @click.pass_context
 def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
-<<<<<<< Updated upstream
-    #TODO modify watch to find newly added datasets
-    # & pass the timestamp
-    # when the watch command is used, record timestamp, and ask for everything since last time stamp
-
-=======
     """
     Crawl function gets the URL of all packages in the CKAN instance.
     The '--watch' option will look for any new package resources based on a time interval
     """
->>>>>>> Stashed changes
     printer = ctx.obj['printer']
     router_url = ctx.obj['router_url']
 
@@ -101,34 +94,28 @@ def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
         printer.print_output()
     else:
         while True:
-<<<<<<< Updated upstream
             timestamp = datetime.datetime.now()
             packages = client.action.package_list()
             logging.warn("Running watch command")
             for package in packages:
                 time.sleep(5)
                 logging.warn("Package name? %s" % package)
-=======
             packages = client.action.package_list()
             for package in packages:
                 logging.warn("Getting %s & waiting 5 seconds" % package)
                 time.sleep(5)
->>>>>>> Stashed changes
                 package_metadata = client.action.package_show(id=package)
                 ini = DoorstepIni(context_package=package_metadata)
                 resources = ini.package['resources']
                 for resource in resources:
-<<<<<<< Updated upstream
                     r = requests.get(resource['url'])
                     with make_file_manager(content={'data.csv': r.text}) as file_manager:
                         try:
                             logging.warn("in the for loop with resources %s " % resource)
-=======
                     logging.warn("getting resources - %s" % resource)
                     r = requests.get(resource['url'])
                     with make_file_manager(content={'data.csv': r.text}) as file_manager:
                         try:
->>>>>>> Stashed changes
                             filename = file_manager.get('data.csv')
                             result = launch_wamp(router_url, filename, workflow, printer, ini)
                             print(result)
