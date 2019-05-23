@@ -54,7 +54,6 @@ def process(ctx, filename, workflow, metadata):
 def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
     """
     Crawl function gets the URL of all packages in the CKAN instance.
-    The '--watch' option will look for any new package resources based on a time interval
     """
     printer = ctx.obj['printer']
     router_url = ctx.obj['router_url']
@@ -67,7 +66,34 @@ def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
     from ckanapi import RemoteCKAN
     client = RemoteCKAN(url, user_agent='lintol-doorstep-crawl/1.0 (+http://lintol.io)')
 
-    if not watch:
+    if watch:
+        # watch(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to)
+        starting_time = datetime.datetime.now()
+        starting_package_list = client.action.package_list()
+        for package in starting_package_list:
+            logging.warn("Getting %s & waiting 5 seconds" % package)
+            time.sleep(5)
+            package_metadata = client.action.package_show(id=package) 
+            ini = DoorstepIni(context_package=package_metadata)
+            resources = ini.package['resources']
+            for resource in resources:
+                logging.warn("Getting resource from package - %s " % resource )
+                r = requests.get(resource['url'])
+                with make_file_manager(content={'data.csv': r.text}) as file_manager:
+                    try:
+                        filename = file_manager.get('data.csv')
+                        result = launch_wamp(router_url, filename, workflow, printer, ini)
+                        # launch_wamp connects to crossbar (which acts as the wamp router) to communicate with the ckan instance
+                        if result:
+                            printed_result = printer.build_report(result)
+                            print(printed_result)
+                    except Exception as e:
+                        logging.error("launch_wamp error - %s" % e)
+        logging.warn("waiting 60 secs")
+        time.sleep(60)
+        printer.print_output()
+
+    else:
         resources = client.action.resource_search(query='format:csv')
         print(resources)
         if 'results' in resources:
@@ -80,8 +106,6 @@ def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
                     if result:
                         printer.build_report(result)
         printer.print_output()
-    else:
-        watch(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to, printer, router_url)
 
 @cli.command()
 @click.argument('workflow', 'Python workflow module')
@@ -90,34 +114,43 @@ def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
 @click.option('--watch-refresh-delay', help='How long until this calls the given CKAN target again', default='60s')
 @click.option('--watch-persist-to', default=None)
 @click.pass_context
-def watch(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to, client, printer, router_url):
+def watch(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
     """
-    watch looks for the newest dataset
+    watch looks for the newest dataset, using polling
     """
-    while True:
-        starting_time = datetime.datetime.now()
-        starting_package_list = client.action.package_list()
-        for package in starting_package_list:
-            logging.warn("Getting %s & waiting 5 seconds" % package)
-            time.sleep(5)
-            package_metadata = client.action.package_show(id=package) 
-            ini = DoorstepIni(context_package=package_metadata)
-            resources = ini.package['resources']
-            for resource in resources:
-                r = requests.get(resource['url'])
-                with make_file_manager(content={'data.csv': r.text}) as file_manager:
-                    try:
-                        filename = file_manager.get('data.csv')
-                        result = launch_wamp(router_url, filename, workflow, printer, ini)
-                        # launch_wamp connects to crossbar (which acts as the wamp router) to communicate with the ckan instance
-                        print(result)
-                        if result:
-                            printer.build_report(result)
-                    except Exception as e:
-                        logging.error("launch_wamp error - %s" % e)
-        logging.warn("waiting 10 secs")
-        time.sleep(10)
-        printer.print_output()
+    printer = ctx.obj['printer']
+    router_url = ctx.obj['router_url']
+
+    if watch_persist_to:
+        watch = True
+
+    ini = None
+
+    from ckanapi import RemoteCKAN
+    client = RemoteCKAN(url, user_agent='lintol-doorstep-crawl/1.0 (+http://lintol.io)')
+    starting_time = datetime.datetime.now()
+    starting_package_list = client.action.package_list()
+    for package in starting_package_list:
+        logging.warn("Getting %s & waiting 5 seconds" % package)
+        time.sleep(5)
+        package_metadata = client.action.package_show(id=package) 
+        ini = DoorstepIni(context_package=package_metadata)
+        resources = ini.package['resources']
+        for resource in resources:
+            r = requests.get(resource['url'])
+            with make_file_manager(content={'data.csv': r.text}) as file_manager:
+                try:
+                    filename = file_manager.get('data.csv')
+                    result = launch_wamp(router_url, filename, workflow, printer, ini)
+                    # launch_wamp connects to crossbar (which acts as the wamp router) to communicate with the ckan instance
+                    # print(result)
+                    if result:
+                        printer.build_report(result)
+                except Exception as e:
+                    logging.error("launch_wamp error - %s" % e)
+    logging.warn("waiting 60 secs")
+    time.sleep(60)
+    printer.print_output()
 
 @cli.command()
 @click.argument('workflow', 'Python workflow module')
