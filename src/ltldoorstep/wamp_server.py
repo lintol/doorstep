@@ -80,13 +80,15 @@ class DataResource():
                     content = file_obj.read()
             else:
                 r = requests.get(content, stream=True)
-                if r.status_code != 200:
-                    raise RuntimeError(_("Could not retrieve supplementary data: %d") % r.status_code)
-
                 logging.warn(_("Downloading %s") % content)
-                content = ''
+
+                if r.status_code != 200:
+                    raise RuntimeError(_("Could not retrieve data from redirected URL: %d") % r.status_code)
+
+                content = b''
                 for chunk in r.iter_content(chunk_size=1024):
-                    content += chunk.decode('utf-8')
+                    content += chunk
+                content = content.decode(r.encoding)
 
         return self._engine.add_data(filename, content.encode('utf-8'), redirect, session)
 
