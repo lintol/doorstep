@@ -1,5 +1,8 @@
 """Engine for running over a dask cluster."""
 
+import aiodocker
+import sys
+import traceback
 import shutil
 import requests
 import uuid
@@ -120,36 +123,36 @@ class DockerEngine(Engine):
         return await self._run(filename, data_content, processors, self.bind_ltldoorstep_module)
 
     async def monitor_pipeline(self, session):
-        session['completion'] = asyncio.Lock()
+        session['completion'] = asyncio.Event()
 
         async def run_when_ready():
-            session['completion'].acquire()
+            # await session['completion'].acquire()
             data = await session['queue'].get()
             try:
                 result = await self._run(data['filename'], data['content'], session['processors'], self.bind_ltldoorstep_module)
                 session['result'] = result
             except Exception as error:
+                __, __, exc_traceback = sys.exc_info()
+                traceback.print_tb(exc_traceback)
                 if not isinstance(error, LintolDoorstepException):
                     error = LintolDoorstepException(error)
                 session['result'] = error
             finally:
-                session['completion'].release()
+                session['completion'].set()
 
         asyncio.ensure_future(run_when_ready())
 
-        return (False, session['completion'].acquire())
+        return (False, session['completion'].wait())
 
     async def get_output(self, session):
-        await session['completion'].acquire()
+        await session['completion'].wait()
 
         result = session['result']
-
-        session['completion'].release()
 
         if isinstance(result, LintolDoorstepException):
             raise result
 
-        return json_dumps(result)
+        return result
 
     @staticmethod
     async def _run(data_filename, data_content, processors, bind_ltldoorstep_module):
@@ -265,13 +268,14 @@ class DockerEngine(Engine):
                     ))
 
                 try:
-                    client.containers.run(
+                    ctr = client.containers.run(
                         '%s:%s' % (docker_image, docker_revision),
                         environment=envs,
                         mounts=mounts,
                         user=os.getuid(),
                         network_mode='none',
-                        cap_drop='ALL'
+                        cap_drop='ALL',
+                        detach=True
                     )
                 except docker.errors.ContainerError as error:
                     doorstep_exception = LintolDoorstepContainerException(
@@ -279,6 +283,11 @@ class DockerEngine(Engine):
                         processor=docker_image
                     )
                     raise doorstep_exception
+
+                adkr = aiodocker.Docker()
+                actr = await adkr.containers.get(ctr.name)
+                await actr.wait()
+                await adkr.close()
 
             reports = []
             for report_file in report_files:

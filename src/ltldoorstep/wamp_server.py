@@ -62,7 +62,6 @@ class ProcessorResource():
             processors[module] = content.encode('utf-8')
 
         ini = DoorstepIni.from_dict(ini)
-        logging.warn(ini)
 
         return self._engine.add_processor(processors, ini, session)
 
@@ -73,7 +72,6 @@ class DataResource():
 
     async def post(self, filename, content, redirect, session=None):
         logging.warn(_("Data posted"))
-        logging.warn(redirect)
         if redirect:
             if content.startswith('file://'):
                 with open(content[len('file://'):], 'r') as file_obj:
@@ -88,7 +86,7 @@ class DataResource():
                 content = b''
                 for chunk in r.iter_content(chunk_size=1024):
                     content += chunk
-                content = content.decode(r.encoding)
+                content = content.decode(r.encoding if r.encoding else 'utf-8')
 
         return self._engine.add_data(filename, content.encode('utf-8'), redirect, session)
 
@@ -98,9 +96,8 @@ class ReportResource():
         self._config = config
 
     async def get(self, session):
-        await session['monitor_output']
-
         results = await self._engine.get_output(session)
+        results = results.__serialize__()
         result_string = json.dumps(results)
 
         if len(result_string) > self._config['report']['max-length-chars']:
@@ -136,8 +133,6 @@ class DoorstepComponent(ApplicationSession):
                 result = await callback(*args, session=self.get_session(session), **kwargs)
             except LintolDoorstepException as e:
                 if self._debug:
-                    logging.error(e.processor)
-                    logging.error(e.exception)
                     exc_type, exc_value, exc_traceback = sys.exc_info()
                     traceback.print_tb(exc_traceback)
                 raise e
@@ -157,7 +152,6 @@ class DoorstepComponent(ApplicationSession):
                 __, monitor_output = await self._engine.monitor_pipeline(session)
                 monitor_output = asyncio.ensure_future(monitor_output)
             except Exception as e:
-                print("ERRORROROROR", e)
                 session['monitor_output'] = asyncio.sleep(1.0)
                 return (self._id, session['name'])
             def output_results(output):

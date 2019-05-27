@@ -7,7 +7,7 @@ import collections
 def load_config():
     config = {
         'report': {
-            'max-length-chars': 100000
+            'max-length-chars': 500000
         }
     }
 

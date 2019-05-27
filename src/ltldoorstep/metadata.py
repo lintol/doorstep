@@ -46,9 +46,9 @@ class DoorstepContext:
         if 'module' in dct:
             kwargs['module'] = dct['module']
 
-        if 'docker' in dct:
-            kwargs['docker_image'] = dct['docker']['image']
-            kwargs['docker_revision'] = dct['docker']['revision']
+        if 'definition' in dct and 'docker' in dct['definition']:
+            kwargs['docker_image'] = dct['definition']['docker']['image']
+            kwargs['docker_revision'] = dct['definition']['docker']['revision']
 
         if 'context' in dct:
             if 'package' in dct['context'] and dct['context']['package']:
@@ -76,7 +76,9 @@ class DoorstepContext:
             package = json.dumps(package)
 
         return {
-            'docker': dict(self.docker),
+            'definition': {
+                'docker': dict(self.docker)
+            },
             'lang': self.lang,
             'context': {
                 'package': package,

@@ -92,6 +92,7 @@ class DaskThreadedEngine(Engine):
         session['completion'].release()
 
         if isinstance(result, LintolDoorstepException):
+            print(result.__serialize__())
             raise result
 
         return result
@@ -115,7 +116,7 @@ class DaskThreadedEngine(Engine):
                 reports.append(report)
         report = combine_reports(*reports)
 
-        return report.compile(filename, {})
+        return report
 
     @staticmethod
     async def run(filename, workflow_module, metadata, bucket=None):
