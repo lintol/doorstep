@@ -1,13 +1,24 @@
-import click
-import json
+"""
+Module to access the wamp router (Crossbar) to query the CKAN server
+"""
 import logging
+import asyncio
+import gettext
+import click
+import time
+import datetime
+import json
+import csv
 import gettext
 import requests
-
 from ltldoorstep import printer
-from ltldoorstep.file import make_file_manager
-from ltldoorstep.wamp_client import launch_wamp
 from ltldoorstep.ini import DoorstepIni
+from ltldoorstep.file import make_file_manager
+from ltldoorstep.wamp_client import launch_wamp, announce_wamp
+from ltldoorstep.data_store import CkanDataStore, DummyDataStore
+from ltldoorstep.crawler import execute_workflow, do_crawl
+from ltldoorstep.wamp_client import launch_wamp
+from ltldoorstep.watch import monitor_for_changes
 
 @click.group()
 @click.option('--debug/--no-debug', default=False)
@@ -24,6 +35,7 @@ def cli(ctx, debug, bucket, router_url):
     }
     gettext.install('ltldoorstep')
 
+
 @cli.command()
 @click.pass_context
 def status(ctx):
@@ -35,6 +47,7 @@ def status(ctx):
     else:
         click.echo(_('Debug is off'))
 
+
 @cli.command()
 @click.option('-m', '--metadata', default=None)
 @click.argument('filename', 'data file to process')
@@ -45,97 +58,137 @@ def process(ctx, filename, workflow, metadata):
     bucket = ctx.obj['bucket']
     router_url = ctx.obj['router_url']
 
-    launch_wamp(router_url, filename, workflow, printer, metadata)
+    async def _exec(cmpt):
+        try:
+            await execute_workflow(cmpt, filename, workflow, metadata)
+        except Exception as e:
+            # if there is any exception thrown, it stops everything
+            loop = asyncio.get_event_loop() 
+            # stops any async events running
+            loop.stop()
+            # throws exception to the top of the stack
+            raise e
+
+    loop = asyncio.get_event_loop() # finds whatever async stuff is happening
+    loop.run_until_complete(launch_wamp(_exec, router_url)) # runs the wamp server
+    loop.run_forever() # forever
 
     print(printer.print_output())
 
+
 @cli.command()
-@click.argument('workflow', 'Python workflow module')
+@click.argument('workflow', 'Python workflow module', default=None, required=False)
 @click.option('--url', required=True)
 @click.option('--watch/--no-watch', help='Should this keep running indefinitely?', default=False)
 @click.option('--watch-refresh-delay', help='How long until this calls the given CKAN target again', default='60s')
-@click.option('--watch-persist-to', default=None)
+@click.option('--publish/--no-publish', default=False)
+@click.option('--dummy-ckan/--no-dummy-ckan', default=False)
 @click.pass_context
-def crawl(ctx, workflow, url, watch, watch_refresh_delay, watch_persist_to):
+def crawl(ctx, workflow, url, watch, watch_refresh_delay, publish, dummy_ckan):
+    """
+    Crawl function gets the URL of all packages in the CKAN instance.
+    Adding the 'watch' option only gets it to look for datasets added/altered since crawl started to run.
+    Add a timedelay argument to give a custom time delay
+    """
     printer = ctx.obj['printer']
     router_url = ctx.obj['router_url']
+    logging.warn("printer  & url types")
+    logging.warn(type(printer))
+    logging.warn(type(router_url))
 
-    if watch_persist_to:
-        watch = True
+    loop = asyncio.get_event_loop()
 
-    ini = None
+    if watch:
+        if dummy_ckan:
+            client = DummyDataStore()
+        else:
+            client = CkanDataStore(url)
 
-    from ckanapi import RemoteCKAN
-    client = RemoteCKAN(url, user_agent='lintol-doorstep-crawl/1.0 (+http://lintol.io)')
+        # launch_wamp connects to crossbar (which acts as the wamp router) to communicate with the ckan instance
+        # runs the component, which is what runs the code from watch.py's Monitor class??
+        async def _exec(cmpt):
+            try:
+                # calls async function to create monitor object
+                await monitor_for_changes(
+                    cmpt,
+                    client,
+                    printer
+                )
+            except Exception as e:
+                # stops the code regardless of the exception thrown
+                loop = asyncio.get_event_loop()
+                loop.stop()
+                raise e # throws to top of stack
 
-    if not watch:
-        resources = client.action.resource_search(query='format:csv')
-        print(resources)
-        if 'results' in resources:
-            for resource in resources['results']:
-                r = requests.get(resource['url'])
-                with make_file_manager(content={'data.csv': r.text}) as file_manager:
-                    filename = file_manager.get('data.csv')
-                    result = launch_wamp(router_url, filename, workflow, printer, ini)
-                    print(result)
-                    if result:
-                        printer.build_report(result)
-        printer.print_output()
     else:
-        # logging.warn('**** in the else block')
-        packages = client.action.package_list()
-        logging.warn('**** in the else block')
-        for package in packages:
-            logging.warn("Package name? %s" % package)
-            # package_metadata = client.action.package_show(id=package)
-            package_metadata = client.action.package_show(id=package)
-            ini = DoorstepIni(context_package=package_metadata)
-            resources = ini.package['resources']
-            # logging.warn("Package name? %s" % package)
-            for resource in resources:
-                r = requests.get(resource['url'])
-                with make_file_manager(content={'data.csv': r.text}) as file_manager:
-                    try:
-                        logging.warn("in the for loop with resources %s " % resource)
-                        filename = file_manager.get('data.csv')
-                        result = launch_wamp(router_url, filename, workflow, printer, ini)
-                        print(result)
-                        if result:
-                            printer.build_report(result)
-                    except Exception as e:
-                        logging.error("launch_wamp error")
-        printer.print_output()
+        async def _exec(cmpt):
+            try:
+                await do_crawl(cmpt, url, workflow, printer, publish)
+            except Exception as e:
+                loop = asyncio.get_event_loop()
+                loop.stop()
+                raise e
+
+    # runs the wamp server forever more or less
+    loop.run_until_complete(launch_wamp(_exec, router_url))
+    loop.run_forever()
 
 @cli.command()
 @click.argument('workflow', 'Python workflow module')
 @click.argument('package', 'Package ID')
 @click.option('--url', required=True)
-@click.option('--watch/--no-watch', help='Should this keep running indefinitely?', default=False)
-@click.option('--watch-refresh-delay', help='How long until this calls the given CKAN target again', default='60s')
-@click.option('--watch-persist-to', default=None)
+@click.option('--dummy-ckan/--no-dummy-ckan', default=False)
 @click.pass_context
-def find_package(ctx, workflow, package, url, watch, watch_refresh_delay, watch_persist_to):
+def find_package(ctx, workflow, package, url, watch, watch_refresh_delay, watch_persist_to, dummy_ckan):
+    """
+    Find Package searches for a specific package and returns the information as metadata
+    Arguments:
+        WORKFLOW    Python workflow module (.py) to run against the data.
+    """
     printer = ctx.obj['printer']
     router_url = ctx.obj['router_url']
 
-    if watch_persist_to:
-        watch = True
+    ini = DoorstepIni()
 
-    ini = None
+    if dummy_ckan:
+        client = DummyDataStore()
+        # creates dummy object
+    else:
+        client = CkanDataStore(url)
+        # creates ckan object
 
-    from ckanapi import RemoteCKAN
-    client = RemoteCKAN(url, user_agent='lintol-doorstep-crawl/1.0 (+http://lintol.io)')
+    loop = asyncio.get_event_loop()
+    # runs gather resources continuously
+    loop.run_until_complete(gather_resources(client, package, workflow, router_url, ini, printer))
+    loop.run_forever()
 
-    if not watch:
-        resources = client.action.resource_search(query='name:' + package)
-        print(resources)
-        if 'results' in resources:
-            for resource in resources['results']:
-                r = requests.get(resource['url'])
-                with make_file_manager(content={'data.csv': r.text}) as file_manager:
-                    filename = file_manager.get('data.csv')
-                    result = launch_wamp(router_url, filename, workflow, printer, ini)
-                    print(result)
-                    if result:
-                        printer.build_report(result)
-        printer.print_output()
+async def gather_resources(client, package, workflow, router_url, metadata, printer):
+    # calls code from Monitor class that runs everything
+    async def _exec(cmpt, filename):
+        try:
+            # calls async function to follow steps to create report
+            await execute_workflow(cmpt, filename, workflow, metadata)
+        except Exception as e:
+            loop = asyncio.get_event_loop()
+            loop.stop()
+            raise e # throws exception to top of stack & stops code if there's any error
+
+    resources = client.resource_search(query='name:' + package)
+    # searches based on name input
+    print(resources)
+    if 'results' in resources:
+        # if resources have column called 'results'
+        for resource in resources['results']:
+            # loops through resources' results
+            r = requests.get(resource['url'])
+            # makes a response object using the url column
+            with make_file_manager(content={'data.csv': r.text}) as file_manager:
+                # makes a file
+                filename = file_manager.get('data.csv')
+                result = launch_wamp(lambda cmpt: _exec(cmpt, filename), router_url)
+                # launches the wamp server, creates a component using _exec()
+                print(result)
+                if result:
+                    printer.build_report(result)
+    printer.print_output()
+

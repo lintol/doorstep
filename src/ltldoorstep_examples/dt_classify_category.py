@@ -12,29 +12,29 @@ import ltldoorstep
 import gettext
 from ltldoorstep.processor import DoorstepProcessor
 from ltldoorstep.reports import report
-from ltldoorstep.location_utils import load_berlin
 from dask.threaded import get
 import requests
 
 import json
 
 METADATA_ROWS = {
-    'name': lambda x: [x['name']] if 'name' in x else [],
-    'notes': lambda x: [x['notes']] if 'notes' in x else [],
-    'resource name': lambda x: [r['name'] for r in x['resources'] if 'name' in r] if 'resources' in x else [],
-    'resource description': lambda x: [r['description'] for r in x['resources']] if 'resources' in x else [],
-    'group title': lambda x: [r['title'] for r in x['groups']] if 'groups' in x else [],
-    'tags': lambda x: [r['name'] for r in x['tags']] if 'tags' in x else [],
-    'topicCategories': lambda x: x['topic_category'] if 'topic_category' in x else []
+    'name': (10, lambda x: [x['name']] if 'name' in x else []),
+    'notes': (3, lambda x: [x['notes']] if 'notes' in x else []),
+    'resource name': (3, lambda x: [r['name'] for r in x['resources'] if 'name' in r] if 'resources' in x else []),
+    'resource description': (5, lambda x: [r['description'] for r in x['resources']] if 'resources' in x else []),
+    'group title': (10, lambda x: [r['title'] for r in x['groups']] if 'groups' in x else []),
+    'tags': (10, lambda x: [r['name'] for r in x['tags']] if 'tags' in x else []),
+    'topicCategories': (10, lambda x: x['topic_category'] if 'topic_category' in x else [])
 }
 
 def get_sentences_from_metadata(context):
     data_lines = []
     pkg_metadata = context.package
 
-    for k, extractor in METADATA_ROWS.items():
-        data_lines += [(k, v) for v in extractor(pkg_metadata)]
-    print(data_lines)
+    for k, (weight, extractor) in METADATA_ROWS.items():
+        extracted = extractor(pkg_metadata)
+        w = weight / len(extracted)
+        data_lines += [(k, v, w) for v in extracted]
 
     return data_lines
 
@@ -55,19 +55,40 @@ def get_sentences_from_data(csv):
 def classify_sentences(rprt, data_sentences, metadata_sentences, context):
     sentences = data_sentences + metadata_sentences
 
-    keys, sentences = zip(*sentences)
+    keys, sentences, weights = zip(*sentences)
     results = get_categories(sentences, context)
 
-    for key, result in zip(keys, results):
+    all_categories = {}
+    for key, lines, result, weight in zip(keys, sentences, results, weights):
         result = sorted(result, key=lambda r: r[0], reverse=True)
+        categories = {tuple(c): weight * r * 100 for r, c in result if r > 0.2}
         issue_text = _("Possible categories in {}: {}").format(key, ", ".join(["{} ({:.2f}%)".format(_(c), r * 100) for r, c in result if r > 0.2]))
         slug_key = key.lower().replace(' ', '-')
 
+        for c, w in categories.items():
+            if c in all_categories:
+                all_categories[c] += w
+            else:
+                all_categories[c] = w
+
+        if result:
+            rprt.add_issue(
+                logging.INFO,
+                'possible-categories-{}'.format(slug_key),
+                issue_text,
+                row_number='Metadata',
+                row={key: lines},
+                error_data=result,
+                at_top=True
+            )
+    if all_categories:
+        result = [('{}:{}'.format(_(c[0]), _(c[1])), w) for c, w in sorted(all_categories.items(), key=lambda r: r[1], reverse=True)]
+        issue_text = _("Possible categories (all, weighted): {}").format(", ".join(["{} ({:.2f}%)".format(c, w) for c, w in result]))
         rprt.add_issue(
             logging.INFO,
-            'possible-categories-{}'.format(slug_key),
+            'possible-categories-all-weighted',
             issue_text,
-            error_data=results,
+            error_data=result,
             at_top=True
         )
 

@@ -11,7 +11,7 @@ from ..encoders import json_dumps
 from .dask_common import run as dask_run
 from .engine import Engine
 import asyncio
-from asyncio import Lock, ensure_future, Queue
+from asyncio import Event, ensure_future, Queue
 from ..ini import DoorstepIni
 
 
@@ -58,18 +58,18 @@ class DaskThreadedEngine(Engine):
     async def monitor_pipeline(self, session):
         logging.warn("Waiting for processor and data")
 
-        session['completion'] = Lock()
+        session['completion'] = Event()
 
         # currently crashing here for a large dataset....
         async def run_when_ready():
-            session['completion'].acquire()
+            #session['completion'].acquire()
             # error here
             # session doesn't seem to be yielding before it crashes
             data = await session['queue'].get()
             logging.warn('Session var here after data is set %s' % session['queue'])
             if data == 0:
                 logging.warn("Releasing session")
-                session['completion'].release()
+                session['completion'].set()
             try:
                 result = await self.run_with_content(data['filename'], data['content'], session['processors'])
                 session['result'] = result
@@ -78,20 +78,18 @@ class DaskThreadedEngine(Engine):
                     error = LintolDoorstepException(error)
                 session['result'] = error
             finally:
-                session['completion'].release()
-                logging.warn("EXCEPTION HERE?************")
+                session['completion'].set()
         ensure_future(run_when_ready())
 
-        return (False, session['completion'].acquire())
+        return (False, session['completion'].wait())
 
     async def get_output(self, session):
-        await session['completion'].acquire()
+        await session['completion'].wait()
 
         result = session['result']
 
-        session['completion'].release()
-
         if isinstance(result, LintolDoorstepException):
+            print(result.__serialize__())
             raise result
 
         return result
@@ -99,8 +97,8 @@ class DaskThreadedEngine(Engine):
     @staticmethod
     async def run_with_content(filename, content, processors):
         reports = []
-        if type(content) == bytes:
-            content = content.decode('utf-8')
+        # if type(content) == bytes:
+        #     content = content.decode('utf-8')
 
         for processor in processors:
             workflow_module = processor['content']
@@ -115,7 +113,7 @@ class DaskThreadedEngine(Engine):
                 reports.append(report)
         report = combine_reports(*reports)
 
-        return report.compile(filename, {})
+        return report
 
     @staticmethod
     async def run(filename, workflow_module, metadata, bucket=None):

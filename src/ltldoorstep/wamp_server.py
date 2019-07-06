@@ -13,6 +13,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 import os
 import uuid
+import chardet
 from .ini import DoorstepIni
 from .errors import LintolDoorstepException
 
@@ -62,7 +63,6 @@ class ProcessorResource():
             processors[module] = content.encode('utf-8')
 
         ini = DoorstepIni.from_dict(ini)
-        logging.warn(ini)
 
         return self._engine.add_processor(processors, ini, session)
 
@@ -73,7 +73,6 @@ class DataResource():
 
     async def post(self, filename, content, redirect, session=None):
         logging.warn(_("Data posted"))
-        logging.warn(redirect)
         if redirect:
             if content.startswith('file://'):
                 with open(content[len('file://'):], 'r') as file_obj:
@@ -88,9 +87,19 @@ class DataResource():
                 content = b''
                 for chunk in r.iter_content(chunk_size=1024):
                     content += chunk
-                content = content.decode(r.encoding)
 
-        return self._engine.add_data(filename, content.encode('utf-8'), redirect, session)
+                if r.encoding:
+                    encoding = r.encoding
+                else:
+                    encoding = chardet.detect(content)['encoding']
+
+                try:
+                    content = content.decode(encoding).encode('utf-8')
+                except: # Get correct encoding error
+                    logging.warn(_("Could not recode content from {} to UTF-8").format(encoding))
+                    pass
+
+        return self._engine.add_data(filename, content, redirect, session)
 
 class ReportResource():
     def __init__(self, engine, config):
@@ -98,9 +107,8 @@ class ReportResource():
         self._config = config
 
     async def get(self, session):
-        await session['monitor_output']
-
         results = await self._engine.get_output(session)
+        results = results.__serialize__()
         result_string = json.dumps(results)
 
         if len(result_string) > self._config['report']['max-length-chars']:
@@ -136,8 +144,6 @@ class DoorstepComponent(ApplicationSession):
                 result = await callback(*args, session=self.get_session(session), **kwargs)
             except LintolDoorstepException as e:
                 if self._debug:
-                    logging.error(e.processor)
-                    logging.error(e.exception)
                     exc_type, exc_value, exc_traceback = sys.exc_info()
                     traceback.print_tb(exc_traceback)
                 raise e
@@ -157,7 +163,6 @@ class DoorstepComponent(ApplicationSession):
                 __, monitor_output = await self._engine.monitor_pipeline(session)
                 monitor_output = asyncio.ensure_future(monitor_output)
             except Exception as e:
-                print("ERRORROROROR", e)
                 session['monitor_output'] = asyncio.sleep(1.0)
                 return (self._id, session['name'])
             def output_results(output):
@@ -189,7 +194,9 @@ class DoorstepComponent(ApplicationSession):
 
 
 def launch_wamp_real(engine, router='localhost:8080', config={}, debug=False):
-    runner = ApplicationRunner(url=('ws://%s/ws' % router), realm='realm1')
+    if not router.startswith('ws'):
+        router = 'ws://%s/ws' % router
+    runner = ApplicationRunner(url=router, realm='realm1')
 
     with SessionSet(engine) as sessions:
         print("Running")

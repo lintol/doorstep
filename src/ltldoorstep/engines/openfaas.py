@@ -56,14 +56,14 @@ class OpenFaaSEngine(Engine):
     async def _run(self):
         with open('/tmp/openfaas', 'r') as f:
             pw = f.read()
-        rq = requests.get('http://127.0.0.1:8080/system/functions', data={
-            "service": "stronghash3",
-            "image": "functions/alpine",
-            "envProcess": "sha512sum",
-            "network": "func_functions"
-        }, auth=HTTPBasicAuth('admin', pw))
+        #rq = requests.get('http://127.0.0.1:8080/system/functions', data={
+        #    "service": "stronghash3",
+        #    "image": "functions/alpine",
+        #    "envProcess": "sha512sum",
+        #    "network": "func_functions"
+        #}, auth=HTTPBasicAuth('admin', pw))
 
-        rq = requests.post('http://127.0.0.1:8080/function/stronghash3', data={
+        rq = requests.post('http://127.0.0.1:8080/function/doorstep', data={
         }, auth=HTTPBasicAuth('admin', pw))
         print(rq.content.decode('utf-8'))
 

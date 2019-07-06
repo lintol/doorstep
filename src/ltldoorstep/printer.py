@@ -142,7 +142,8 @@ class HtmlPrinter(Printer):
                     issue.code,
                     issue.message,
                     str(item.definition) if item.definition else '',
-                    issue.error_data
+                    issue.error_data,
+                    item.properties if item.properties else ''
                 ])
 
         level_labels = [
@@ -162,7 +163,8 @@ class HtmlPrinter(Printer):
                     _('Issue'),
                     _('Description'),
                     _('On Item'),
-                    _('Issue Data')
+                    _('Issue Data'),
+                    _('Item')
                 ]) + '</tr></thead>')
                 table.append('<tbody>')
 

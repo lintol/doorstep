@@ -66,7 +66,9 @@ setup(
         'autobahn',
         'ckanapi',
         'requests',
-        'docker'
+        'docker',
+        'retry',
+        'aiodocker'
     ],
     include_package_data=True,
     tests_require=[

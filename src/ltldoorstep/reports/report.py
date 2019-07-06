@@ -6,6 +6,7 @@ import logging
 import json
 import os
 from ..metadata import DoorstepContext
+from ..encoders import Serializable
 
 def get_report_class_from_preset(preset):
     if preset not in _report_class_from_preset:
@@ -109,7 +110,7 @@ class ReportIssueLiteral(ReportIssue):
     def render(self):
         return self.literal
 
-class Report:
+class Report(Serializable):
     preset = None
 
     @classmethod
@@ -119,8 +120,11 @@ class Report:
 
         return cls.preset
 
+    def __serialize__(self):
+        return self.compile()
+
     def __str__(self):
-        return json.dumps(self.compile())
+        return json.dumps(self.__serialize__())
 
     def __repr__(self):
         return '(|Report: %s|)' % str(self)
