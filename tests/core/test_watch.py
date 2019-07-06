@@ -93,7 +93,7 @@ async def test_get_resources(printer, router, package_info, monitor):
     content.text = "Fake text??"
     def get_data(url): return content
     ini = DoorstepIni(context_package=package_info)
-    output = await monitor.get_resource(ini, get_data)
+    await monitor.get_resource(ini, get_data)
 
 
 def test_check_empty_resources():
