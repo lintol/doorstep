@@ -1,4 +1,5 @@
 import json
+import logging
 from .metadata import DoorstepContext
 
 class DoorstepIni:
@@ -30,21 +31,22 @@ class DoorstepIni:
     @classmethod
     def from_dict(cls, dct):
         kwargs = {}
+        context = {}
 
         if 'context' in dct:
             if 'package' in dct['context']:
                 kwargs['context_package'] = dct['context']['package']
-                context = dct['context']
-        else:
-            context = False
+                context['context'] = dct['context']
+
+        if 'lang' in dct:
+            kwargs['lang'] = dct['lang']
+            context['lang'] = dct['lang']
 
         if 'definitions' in dct:
             kwargs['definitions'] = {}
             for d, processor in dct['definitions'].items():
-                kwargs['definitions'][d] = DoorstepContext.from_dict(processor)
-
-        if 'lang' in dct:
-            kwargs['lang'] = dct['lang']
+                context.update(processor)
+                kwargs['definitions'][d] = DoorstepContext.from_dict(context)
 
         return cls(**kwargs)
 

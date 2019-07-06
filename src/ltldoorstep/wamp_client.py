@@ -3,7 +3,6 @@ import requests
 import time
 import uuid
 import json
-import json
 import logging
 from autobahn.wamp.exception import ApplicationError
 from autobahn.asyncio.wamp import ApplicationRunner, ApplicationSession
@@ -12,6 +11,8 @@ import asyncio
 from .wamp_server import DoorstepComponent, SessionSet
 from .ini import DoorstepIni
 from .metadata import DoorstepContext
+from . import errors
+
 
 class WampClientComponent(ApplicationSession):
     """Connector to join and execute a WAMP session."""
@@ -19,92 +20,53 @@ class WampClientComponent(ApplicationSession):
     _server = None
     _session = None
 
-    def __init__(self, filename, workflow, ini, *args, printer=None, **kwargs):
+    def __init__(self, on_join, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._filename = filename
-        self._workflow = workflow
-        self._ini = ini
-        self._printer = printer
+        self.on_join = on_join
 
     async def onJoin(self, details):
-        """When we join the server, execute the client workflow."""
-
-        #with open(self._filename, 'r') as file_obj:
-        #    content = file_obj.read()
-        filename = os.path.basename(self._filename)
-
-        with open(self._workflow, 'r') as file_obj:
-            module = file_obj.read()
-        workflow = os.path.basename(self._workflow)
-
-        definitions = {
-            str(uuid.uuid4()): DoorstepMetadata.from_dict({
-                'module': workflow
-            })
-        }
-        if not self._ini:
-            self._ini = DoorstepIni(definitions=definitions)
-
-        if type(self._ini) is str:
-            with open(self._ini, 'r') as file_obj:
-                self._ini = DoorstepIni.from_dict(json.load(file_obj))
-        elif not self._ini.definitions:
-            self._ini.definitions = definitions
-
-        ini = self._ini
-
-        self._server, self._session = await self.call('com.ltldoorstep.engage')
-
-        print('C', ini.to_dict()['definitions'])
-        await self.call_server('processor.post', {workflow: module}, ini.to_dict())
-        content = "file://{}".format(os.path.abspath(self._filename))
-
-        logging.error("Sending: {}".format(content))
-        await self.call_server('data.post', filename, content, True)
-
-        try:
-            result = await self.call_server('report.get')
-        except ApplicationError as e:
-            logging.error(e)
-            result = None
-
-        #temp commented out
-        # if self._printer and result:
-            # self._printer.build_report(result)
-
-        # Stop and return control
-        loop = asyncio.get_event_loop()
-        loop.stop()
-
-        #RMV
-        #self._printer.print_output()
+        logging.error("Joined")
+        return await self.on_join(self)
 
     async def call_server(self, endpoint, *args, **kwargs):
         """Generate the correct endpoint for the known server."""
 
         try:
             return await self.call(
-                'com.ltldoorstep.{server}.{endpoint}'.format(server=self._server, endpoint=endpoint),
+                'com.ltldoorstep.{server}.{endpoint}'.format(
+                    server=self._server, endpoint=endpoint),
                 self._session,
                 *args,
                 **kwargs
             )
-        except:
-            return "error"
+        except Exception as e:
+            if e.error.startswith('LintolDoorstep'):
+                e_cls = getattr(errors, e.error)
+                e = e_cls(e.kwargs['exception'], processor=e.kwargs['processor'],
+                          status_code=e.kwargs['code'], message=e.kwargs['message'])
+            raise e
 
 
-def launch_wamp_real(router_url, filename, workflow, printer, ini):
+async def launch_wamp_real(on_join, router_url):
+    """
+    launches the wamp client if the workflow is successful
+    """
     runner = ApplicationRunner(url=router_url, realm='realm1')
-    runner.run(lambda *args, **kwargs: WampClientComponent(
-        filename,
-        workflow,
-        ini,
+    transport, protocol = await runner.run(lambda *args, **kwargs: WampClientComponent(
+        on_join,
         *args,
-        printer=printer,
         **kwargs
-    ))
+    ), start_loop=False)
+    return runner
 
-def launch_wamp(router_url, filename, workflow, printer, ini):
+
+async def announce_wamp(on_join, router_url):
+    """Announce the newly found package to the WAMP server to pass it to capstone."""
+
+    runner = await launch_wamp(on_join, router_url)
+
+
+async def launch_wamp(on_join, router_url):
     """Run the workflow against a WAMP server."""
 
     if router_url[0] == '#':
@@ -114,8 +76,14 @@ def launch_wamp(router_url, filename, workflow, printer, ini):
         fallback = False
 
     try:
-        launch_wamp_real(router_url, filename, workflow, printer, ini)
-    except:
+        # launches the wamp client
+        runner = await launch_wamp_real(on_join, router_url)
+    except Exception as e:
+        raise e
+        # if it fails it throws the error up the stack
         if fallback:
-            input("Could not find router, pausing until you start one... (press Return to continue)")
-            launch_wamp_real(router_url, filename, workflow, printer, ini)
+            # if it fails it tries to run it again
+            input(
+                "Could not find router, pausing until you start one... (press Return to continue)")
+            runner = await launch_wamp_real(on_join, router_url)
+    return runner

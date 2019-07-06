@@ -15,8 +15,8 @@ class TempFileManager:
 
         for filename, body in content.items():
             local_filename = os.path.join(self._local, os.path.basename(filename))
-            print(local_filename)
-            with open(local_filename, 'w') as file_obj:
+            mode = 'wb' if type(body) == bytes else 'w'
+            with open(local_filename, mode) as file_obj:
                 file_obj.write(body)
 
     def get(self, filename):

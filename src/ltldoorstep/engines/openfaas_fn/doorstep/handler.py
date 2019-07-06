@@ -1,27 +1,38 @@
 from flask import current_app
 from flask_restful import Resource, abort, reqparse
 from ltldoorstep.engines import engines
+from ltldoorstep.metadata import DoorstepContext
 from ltldoorstep.config import load_config
+
+import asyncio
 import os
+
+ENGINE = 'dask.threaded'
+ENGINE_CONFIG = {}
+
 
 class Handler(Resource):
     def post(self):
         parser = reqparse.RequestParser()
+        parser.add_argument('filename', location='json')
         parser.add_argument('metadata', location='json')
+        parser.add_argument('workflow', location='json')
+        parser.add_argument('settings', location='json')
         args = parser.parse_args()
 
-        if args['sentence']:
-            result = args['sentence']
-        else:
-            abort(400, "Sentence argument missing")
-
-        config = load_config()
-        engine, config = get_engine(engine, config)
-        engine = engines[engine](config=config)
+        engine = engines[ENGINE](config=ENGINE_CONFIG)
 
         metadata = args['metadata']
         if metadata is None:
             metadata = {}
+
+        filename = args['filename']
+        if filename is None:
+            filename = ""
+
+        workflow = args['workflow']
+        if workflow is None:
+            workflow = ""
 
         context_args = {'context': {'package': metadata}}
 
@@ -31,7 +42,7 @@ class Handler(Resource):
         metadata = DoorstepContext.from_dict(context_args)
 
         loop = asyncio.get_event_loop()
-        result = loop.run_until_complete(engine.run(filename, workflow, metadata, bucket=bucket))
+        result = loop.run_until_complete(engine.run(filename, workflow, metadata))
 
     @classmethod
     def preload(cls):

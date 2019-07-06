@@ -1,0 +1,73 @@
+image: docker:latest
+
+variables:
+  CONTAINER_IMAGE: $CI_REGISTRY_IMAGE:$CI_PIPELINE_ID
+  CONTAINER_RELEASE_IMAGE: $GCP_ECR_URI:latest
+  DOCKER_DRIVER: overlay
+
+stages:
+- build
+- test
+- release
+- deploy
+
+services:
+- docker:dind
+
+before_script:
+  - echo "Registering with token $CI_BUILD_TOKEN"
+  - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
+
+build:
+  stage: build
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  script:
+  - docker build -f Dockerfile -t $CONTAINER_IMAGE .
+  - docker push $CONTAINER_IMAGE
+
+test:
+  stage: test
+  script:
+  - pwd
+  #- docker run --entrypoint php $CONTAINER_IMAGE vendor/phpunit/phpunit/phpunit
+  #- docker run --entrypoint vendor/behat/behat/bin/behat $CONTAINER_ARTISAN_IMAGE
+  dependencies: []
+
+release:
+  stage: release
+  script:
+  # NGINX
+  - docker pull $CONTAINER_IMAGE
+  - docker tag $CONTAINER_IMAGE $CONTAINER_RELEASE_IMAGE
+  - docker tag $CONTAINER_RELEASE_IMAGE $GCP_ECR_URI:$CI_PIPELINE_ID
+  # Login to GCP container Registry
+  - docker login -u _json_key -p "$(echo $GCP_KEY_JSON)" $GCP_ECR_URI
+  # Push release versions to repository.
+  - docker push $CONTAINER_RELEASE_IMAGE
+  - docker push $GCP_ECR_URI:$CI_PIPELINE_ID
+  only:
+  - master
+  - development
+  dependencies: []
+
+# WARNING: Prefer using --context=$CI_PROJECT_ID else concurrent builds may fail.
+deploy_dev:
+  image: google/cloud-sdk:162.0.0
+  before_script:
+  # In gitlab operation -> kubernetes needs to be setup for this to work so you get the KUBE variables
+  - kubectl config set-cluster "$CI_PROJECT_ID" --server="$KUBE_URL" --certificate-authority="$KUBE_CA_PEM_FILE"
+  - kubectl config set-credentials "$CI_PROJECT_ID" --token="$KUBE_TOKEN"
+  - kubectl config set-context "$CI_PROJECT_ID" --cluster="$CI_PROJECT_ID" --user="$CI_PROJECT_ID" --namespace="$KUBE_NAMESPACE"
+  - kubectl config use-context "$CI_PROJECT_ID"
+  stage: deploy
+  script:
+  script:
+  - kubectl set image deployment/$CI_ENVIRONMENT_SLUG-doorstep doorstep=$CONTAINER_PHPFPM_IMAGE
+  environment:
+    name: ltl-doorstep-dev
+    url: http://$CI_ENVIRONMENT_SLUG.$CI_TARGET_DOMAIN
+  only:
+  - master
+  - preview
+  dependencies: []

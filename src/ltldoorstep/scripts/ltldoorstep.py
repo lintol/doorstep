@@ -86,9 +86,9 @@ def status(ctx):
 @click.option('-e', '--engine', required=True)
 @click.option('-m', '--metadata', default=None)
 @click.option('-p', '--package', default=None)
-@click.option('-s', '--settings', default=None)
+@click.option('-c', '--configuration', default=None)
 @click.pass_context
-def process(ctx, filename, workflow, engine, metadata, package, settings):
+def process(ctx, filename, workflow, engine, metadata, package, configuration):
     printer = ctx.obj['printer']
     config = ctx.obj['config']
     bucket = ctx.obj['bucket']
@@ -110,8 +110,8 @@ def process(ctx, filename, workflow, engine, metadata, package, settings):
             metadata = metadata[package]
         context_args['context_package'] = metadata
 
-    if settings:
-        context_args['settings'] = json.loads(settings)
+    if configuration:
+        context_args['configuration'] = json.loads(configuration)
 
     if context_args:
         metadata = DoorstepContext(**context_args)
