@@ -17,6 +17,8 @@ import chardet
 from .ini import DoorstepIni
 from .errors import LintolDoorstepException
 
+RECONNECT_DELAY = 6
+
 class SessionSet(OrderedDict):
     def __init__(self, engine):
         self._engine = engine
@@ -196,12 +198,28 @@ class DoorstepComponent(ApplicationSession):
 def launch_wamp_real(engine, router='localhost:8080', config={}, debug=False):
     if not router.startswith('ws'):
         router = 'ws://%s/ws' % router
-    runner = ApplicationRunner(url=router, realm='realm1')
 
     with SessionSet(engine) as sessions:
-        print("Running")
-        runner.run(lambda *args, **kwargs: DoorstepComponent(engine, sessions, config, debug, *args, **kwargs))
-        print("Run")
+        exit = False
+        while not exit:
+            loop = asyncio.get_event_loop()
+            runner = ApplicationRunner(url=router, realm='realm1')
+
+            if loop.is_closed():
+                loop = asyncio.new_event_loop()
+                print("New loop")
+                asyncio.set_event_loop(loop)
+                runner.transport_factory.loop = loop
+
+            print("Start running")
+            coro = runner.run(
+                lambda *args, **kwargs: DoorstepComponent(engine, sessions, config, debug, *args, **kwargs),
+                start_loop=False
+            )
+            loop.run_until_complete(coro)
+            loop.run_forever()
+            print(f"Run exited: waiting {RECONNECT_DELAY} seconds")
+            time.sleep(RECONNECT_DELAY)
 
 def launch_wamp(engine, router='#localhost:8080', config={}, debug=False):
     if router[0] == '#':
