@@ -1,7 +1,7 @@
 import os
 from dask.threaded import get
 from ltldoorstep_examples.dt_classify_location import processor
-from ltldoorstep.metadata import DoorstepMetadata
+from ltldoorstep.metadata import DoorstepContext
 import pytest
 import json
 
@@ -19,5 +19,5 @@ def testing_dt_classify_location_pass():
 
     print(json.dumps(report.compile(), indent=True))
 
-    assert type(classify_location.metadata) is DoorstepMetadata
+    assert type(classify_location.metadata) is DoorstepContext
     assert type(classify_location.metadata.package) is dict
