@@ -126,7 +126,7 @@ class Monitor:
                         print(exp)
                         # catches connection errors only
                         print('Error retrieving from client API [package-show], trying again...')
-                        time.sleep(1)
+                    time.sleep(1)
 
                 ini = DoorstepIni(context_package=package_info) # classes = studley case
                 # calls async function from Monitor class to get the dataset's resource using the package info
