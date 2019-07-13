@@ -1,4 +1,3 @@
-import time
 import requests
 import asyncio
 import json
@@ -11,27 +10,39 @@ from ltldoorstep.crawler import announce_resource
 
 # time delay could be user defined
 TIME_DELAY = 5
+RETRIES = 10
 
 async def search_gather(client, watch_changed_packages, settings):
     cursor = 0
     complete = None
     while not complete:
         settings['start'] = cursor
-        try:
-            packages = client.package_search(**settings)
-        except client.exception as exp:
-            print(exp)
-            # catches connection errors only
-            print('Error retrieving from client API [revision-list], trying again...')
-            time.sleep(1)
-        else:
-            cursor += len(packages['results'])
-            complete = cursor > packages['count']
+
+        retry = 1
+        while retry:
+            try:
+                packages = client.package_search(**settings)
+                retry = False
+            except client.exception as exp:
+                print(exp)
+                if retry > RETRIES:
+                    raise exp
+
+                # catches connection errors only
+                print('Error retrieving from client API [revision-list], trying again...')
+                time.sleep(1)
+                retry += 1
+            else:
+                cursor += len(packages['results'])
+                complete = cursor >= packages['count']
 
         list_checked_packages = []
 
         recent_revisions = [{'revision_id': package['id'], 'data': {'package': package}} for package in packages['results']]
         print(f"Total packages: {len(recent_revisions)}")
+
+        print("Waiting - ", TIME_DELAY)
+        time.sleep(TIME_DELAY)
 
         # calls another async fucntion using the vars set above
         await watch_changed_packages(

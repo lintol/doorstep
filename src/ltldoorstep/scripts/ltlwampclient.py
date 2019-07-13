@@ -131,6 +131,9 @@ def crawl(ctx, workflow, url, search, watch, watch_refresh_delay, publish, dummy
             loop = asyncio.get_event_loop()
             loop.stop()
             raise e # throws to top of stack
+        await cmpt.leave(u'wamp.close.complete', 'finished')
+        loop = asyncio.get_event_loop()
+        loop.stop()
 
     # runs the wamp server forever more or less
     loop.run_until_complete(launch_wamp(_exec, router_url))
