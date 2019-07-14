@@ -20,7 +20,7 @@ import json
 MAX_CATEGORIES_PER_ITEM = 20
 
 METADATA_ROWS = {
-    'name': (10, lambda x, _: [x['name']] if 'name' in x else []),
+    'name': (10, lambda x, _: [x['name'].replace('-', ' ')] if 'name' in x and x['name'] else []),
     'notes': (3, lambda x, _: [x['notes']] if 'notes' in x else []),
     'resource name': (3, lambda x, f: [r['name'] for r in x['resources'] if 'name' in r] if 'resources' in x else []),
     'resource description': (5, lambda x, f: [r['description'] for r in x['resources'] if 'description' in r] if 'resources' in x else []),
@@ -37,7 +37,7 @@ def get_sentences_from_metadata(context, filename):
         extracted = extractor(pkg_metadata, filename)
         if extracted:
             w = weight / len(extracted)
-            data_lines += [(k, v, w) for v in extracted]
+            data_lines += [(k, v, w) for v in extracted if v]
 
     return data_lines
 
@@ -58,51 +58,53 @@ def get_sentences_from_data(csv):
 def classify_sentences(rprt, data_sentences, metadata_sentences, context):
     sentences = data_sentences + metadata_sentences
 
-    keys, sentences, weights = zip(*sentences)
-    results = get_categories(sentences, context)
-
     all_categories = {}
     categories_by_key = {}
-    for key, lines, result, weight in zip(keys, sentences, results, weights):
-        if key not in categories_by_key:
-            categories_by_key[key] = result
 
-        categories_by_key[key] += result
-        categories = {tuple(c): weight * r * 100 for r, c in result if r > 0.2}
+    if sentences:
+        logging.warn(sentences)
+        keys, sentences, weights = zip(*sentences)
+        results = get_categories(sentences, context)
 
-        for c, w in categories.items():
-            if c in all_categories:
-                all_categories[c] += w
-            else:
-                all_categories[c] = w
+        for key, lines, result, weight in zip(keys, sentences, results, weights):
+            if key not in categories_by_key:
+                categories_by_key[key] = result
 
-    for key, result in categories_by_key.items():
-        result = sorted(result, key=lambda r: r[0], reverse=True)
-        result_trimmed = [(r, c) for r, c in result if r > 0.2][:MAX_CATEGORIES_PER_ITEM]
-        issue_text = _("Possible categories in {}: {}").format(key, ", ".join(["{} ({:.2f}%)".format(_(c), r * 100) for r, c in result_trimmed]))
-        slug_key = key.lower().replace(' ', '-')
+            categories_by_key[key] += result
+            categories = {tuple(c): weight * r * 100 for r, c in result if r > 0.2}
 
-        if result:
-            rprt.add_issue(
-                logging.INFO,
-                'possible-categories-{}'.format(slug_key),
-                issue_text,
-                row_number='Metadata',
-                row={key: []},
-                error_data=result,
-                at_top=True
-            )
+            for c, w in categories.items():
+                if c in all_categories:
+                    all_categories[c] += w
+                else:
+                    all_categories[c] = w
 
-    if all_categories:
-        result = [('{}:{}'.format(_(c[0]), _(c[1])), w) for c, w in sorted(all_categories.items(), key=lambda r: r[1], reverse=True)[:MAX_CATEGORIES_PER_ITEM]]
-        issue_text = _("Possible categories (all, weighted): {}").format(", ".join(["{} ({:.2f}%)".format(c, w) for c, w in result]))
-        rprt.add_issue(
-            logging.INFO,
-            'possible-categories-all-weighted',
-            issue_text,
-            error_data=result,
-            at_top=True
-        )
+        for key, result in categories_by_key.items():
+            result = sorted(result, key=lambda r: r[0], reverse=True)
+            result_trimmed = [(r, c) for r, c in result if r > 0.2][:MAX_CATEGORIES_PER_ITEM]
+            issue_text = _("Possible categories in {}: {}").format(key, ", ".join(["{} ({:.2f}%)".format(_(c), r * 100) for r, c in result_trimmed]))
+            slug_key = key.lower().replace(' ', '-')
+
+            if result:
+                rprt.add_issue(
+                    logging.INFO,
+                    'possible-categories-{}'.format(slug_key),
+                    issue_text,
+                    row_number='Metadata',
+                    row={key: []},
+                    error_data=result,
+                    at_top=True
+                )
+
+    result = [('{}:{}'.format(_(c[0]), _(c[1])), w) for c, w in sorted(all_categories.items(), key=lambda r: r[1], reverse=True)[:MAX_CATEGORIES_PER_ITEM]]
+    issue_text = _("Possible categories (all, weighted): {}").format(", ".join(["{} ({:.2f}%)".format(c, w) for c, w in result]))
+    rprt.add_issue(
+        logging.INFO,
+        'possible-categories-all-weighted',
+        issue_text,
+        error_data=result,
+        at_top=True
+    )
 
     return rprt
 
