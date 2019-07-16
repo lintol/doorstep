@@ -23,6 +23,15 @@ def test_resource_not_found():
     pass
 
 
+def test_package_search(dummy_data_store):
+    settings = {}
+    settings['start'] = 0
+    result = dummy_data_store.package_search(**settings)
+    # ^ syntax? name of arg & value = overriding default values
+    # args with values assigned are optional
+    assert result is list
+
+
 def test_empty_list_checked_packages():
     assert not list_checked_packages()
 
@@ -32,13 +41,19 @@ def list_checked_packages():
     return list_checked_packages
 
 @pytest.fixture
-def monitor(printer):
-    client = DummyDataStore()
-    def test_gather(client, watch_changed_packages, settings): return None
+def monitor(printer, dummy_data_object):
+    def test_gather(dummy_data_store, watch_changed_packages, settings): return None
     async def announce_fn(cmpt, resource, ini, source): return None
 
-    monitor = Monitor(None, client, printer, test_gather, announce_fn)
+    monitor = Monitor(None, dummy_data_store, printer, test_gather, announce_fn)
     return monitor
+
+
+@pytest.fixture
+def dummy_data_store():
+    client = DummyDataStore()
+    return client
+
 
 @pytest.fixture
 def router():
