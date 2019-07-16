@@ -10,7 +10,6 @@ class FakePrinter:
     Printer class to create a testing object
     '''
 
-
     def build_report(self, result):
         return TabularReport("test", "test")
 
@@ -25,9 +24,9 @@ def test_resource_not_found():
 
 def test_package_search(dummy_data_store):
     settings = {}
-    settings['start'] = 0
+    settings['start'] = 0 # creates a 'cursor'
     result = dummy_data_store.package_search(**settings)
-    # ^ syntax? name of arg & value = overriding default values
+    # name of arg & value = overriding default values
     # args with values assigned are optional
     assert type(result['results']) is list
 
@@ -40,23 +39,29 @@ def list_checked_packages():
     list_checked_packages = []  # dummy version of the checked package list
     return list_checked_packages
 
+
 @pytest.fixture
 def monitor(printer, dummy_data_object):
-    def test_gather(dummy_data_store, watch_changed_packages, settings): return None
+    def test_gather(dummy_data_store, watch_changed_packages,
+                    settings): return None
+
     async def announce_fn(cmpt, resource, ini, source): return None
 
-    monitor = Monitor(None, dummy_data_store, printer, test_gather, announce_fn)
+    monitor = Monitor(None, dummy_data_store, printer,
+                      test_gather, announce_fn)
     return monitor
 
 
 @pytest.fixture
 def dummy_data_store():
+    ''' creates dummy data store object '''
     client = DummyDataStore()
     return client
 
 
 @pytest.fixture
 def router():
+    ''' creates a router object for testing '''
     router_obj = FakeObject()
     router_obj.router_url = ['router_url']
     return router_obj.router_url
@@ -69,15 +74,15 @@ def printer():
 
 @pytest.fixture
 def package_info():
-    package_info = { "resources":
-        [
-            {
-                "resource_id": "1",
-                "name": "Name",
-                "url": "https://url.com"
-            }
-        ]
-    }
+    package_info = {"resources":
+                    [
+                        {
+                            "resource_id": "1",
+                            "name": "Name",
+                            "url": "https://url.com"
+                        }
+                    ]
+                    }
     return package_info
 
 
@@ -102,10 +107,9 @@ async def test_watch_changed_packages(package_info, printer, router, monitor):
     await monitor.watch_changed_packages(recently_changed, list_checked_packages(), package_show)
 
 
-# async func for testing
-# if it's called in the live code with an await
 @pytest.mark.asyncio
 async def test_get_resources(printer, router, package_info, monitor):
+    ''' async test function - used if it's called in the live code with an await '''
     content = FakeObject()
     content.text = "Fake text??"
     def get_data(url): return content
