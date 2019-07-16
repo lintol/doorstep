@@ -29,7 +29,7 @@ def test_package_search(dummy_data_store):
     result = dummy_data_store.package_search(**settings)
     # ^ syntax? name of arg & value = overriding default values
     # args with values assigned are optional
-    assert result is list
+    assert type(result['results']) is list
 
 
 def test_empty_list_checked_packages():
@@ -102,6 +102,8 @@ async def test_watch_changed_packages(package_info, printer, router, monitor):
     await monitor.watch_changed_packages(recently_changed, list_checked_packages(), package_show)
 
 
+# async func for testing
+# if it's called in the live code with an await
 @pytest.mark.asyncio
 async def test_get_resources(printer, router, package_info, monitor):
     content = FakeObject()

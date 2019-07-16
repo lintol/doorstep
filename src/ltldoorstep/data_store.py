@@ -77,7 +77,6 @@ class DummyDataStore(DataStore):
         package_search = {'results' :
                             ['value 1', 'value 2', 'value 3', 'value 4']
                         }
-                        
         return package_search
 
     def resource_search(self, query):
