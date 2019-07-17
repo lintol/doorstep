@@ -18,7 +18,7 @@ from ltldoorstep.wamp_client import launch_wamp, announce_wamp
 from ltldoorstep.data_store import CkanDataStore, DummyDataStore
 from ltldoorstep.crawler import execute_workflow, do_crawl
 from ltldoorstep.wamp_client import launch_wamp
-from ltldoorstep.watch import monitor_for_changes
+from ltldoorstep.watch import monitor_for_changes, watch_gather, crawl_gather, search_gather
 
 @click.group()
 @click.option('--debug/--no-debug', default=False)
@@ -79,12 +79,13 @@ def process(ctx, filename, workflow, metadata):
 @cli.command()
 @click.argument('workflow', 'Python workflow module', default=None, required=False)
 @click.option('--url', required=True)
+@click.option('--search', required=False, default=None)
 @click.option('--watch/--no-watch', help='Should this keep running indefinitely?', default=False)
 @click.option('--watch-refresh-delay', help='How long until this calls the given CKAN target again', default='60s')
 @click.option('--publish/--no-publish', default=False)
 @click.option('--dummy-ckan/--no-dummy-ckan', default=False)
 @click.pass_context
-def crawl(ctx, workflow, url, watch, watch_refresh_delay, publish, dummy_ckan):
+def crawl(ctx, workflow, url, search, watch, watch_refresh_delay, publish, dummy_ckan):
     """
     Crawl function gets the URL of all packages in the CKAN instance.
     Adding the 'watch' option only gets it to look for datasets added/altered since crawl started to run.
@@ -99,35 +100,40 @@ def crawl(ctx, workflow, url, watch, watch_refresh_delay, publish, dummy_ckan):
     loop = asyncio.get_event_loop()
 
     if watch:
-        if dummy_ckan:
-            client = DummyDataStore()
-        else:
-            client = CkanDataStore(url)
-
-        # launch_wamp connects to crossbar (which acts as the wamp router) to communicate with the ckan instance
-        # runs the component, which is what runs the code from watch.py's Monitor class??
-        async def _exec(cmpt):
-            try:
-                # calls async function to create monitor object
-                await monitor_for_changes(
-                    cmpt,
-                    client,
-                    printer
-                )
-            except Exception as e:
-                # stops the code regardless of the exception thrown
-                loop = asyncio.get_event_loop()
-                loop.stop()
-                raise e # throws to top of stack
-
+        gather_fn = watch_gather
     else:
-        async def _exec(cmpt):
-            try:
-                await do_crawl(cmpt, url, workflow, printer, publish)
-            except Exception as e:
-                loop = asyncio.get_event_loop()
-                loop.stop()
-                raise e
+        gather_fn = crawl_gather
+
+    if search:
+        if watch:
+            raise RuntimeError("Can only use watch or search")
+        search_settings = json.loads(search)
+        gather_fn = lambda c, w: search_gather(c, w, search_settings)
+
+    if dummy_ckan:
+        client = DummyDataStore()
+    else:
+        client = CkanDataStore(url)
+
+    # launch_wamp connects to crossbar (which acts as the wamp router) to communicate with the ckan instance
+    # runs the component, which is what runs the code from watch.py's Monitor class??
+    async def _exec(cmpt):
+        try:
+            # calls async function to create monitor object
+            await monitor_for_changes(
+                cmpt,
+                client,
+                printer,
+                gather_fn
+            )
+        except Exception as e:
+            # stops the code regardless of the exception thrown
+            loop = asyncio.get_event_loop()
+            loop.stop()
+            raise e # throws to top of stack
+        await cmpt.leave(u'wamp.close.complete', 'finished')
+        loop = asyncio.get_event_loop()
+        loop.stop()
 
     # runs the wamp server forever more or less
     loop.run_until_complete(launch_wamp(_exec, router_url))

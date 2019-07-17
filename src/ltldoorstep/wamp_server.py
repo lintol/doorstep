@@ -114,7 +114,7 @@ class ReportResource():
         result_string = json.dumps(results)
 
         if len(result_string) > self._config['report']['max-length-chars']:
-            raise RuntimeError(_("Report is too long: %d characters") % len(results))
+            raise RuntimeError(_("Report is too long: %d characters") % len(result_string))
 
         return result_string
 

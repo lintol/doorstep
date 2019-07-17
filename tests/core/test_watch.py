@@ -1,4 +1,6 @@
-from ltldoorstep.watch import watch_changed_packages, get_resource
+from ltldoorstep.watch import Monitor
+from ltldoorstep.ini import DoorstepIni
+from ltldoorstep.data_store import DummyDataStore
 from ltldoorstep.reports.tabular import TabularReport
 import pytest
 
@@ -29,6 +31,14 @@ def list_checked_packages():
     list_checked_packages = []  # dummy version of the checked package list
     return list_checked_packages
 
+@pytest.fixture
+def monitor(printer):
+    client = DummyDataStore()
+    def test_gather(client, watch_changed_packages, settings): return None
+    async def announce_fn(cmpt, resource, ini, source): return None
+
+    monitor = Monitor(None, client, printer, test_gather, announce_fn)
+    return monitor
 
 @pytest.fixture
 def router():
@@ -56,13 +66,15 @@ def package_info():
     return package_info
 
 
-def test_watch_changed_packages(package_info, printer, router):
+@pytest.mark.asyncio
+async def test_watch_changed_packages(package_info, printer, router, monitor):
     recently_changed = [
         {
             "revision_id": "1",
             "data": {
                 "package": {
                     "name": "Name",
+                    "id": "Name",
                     "url": "https://url.com"
                 }
             },
@@ -71,18 +83,17 @@ def test_watch_changed_packages(package_info, printer, router):
         }
     ]
     def package_show(id): return package_info
-    output = watch_changed_packages(recently_changed, list_checked_packages(),
-                                    None, None, None, printer, router, package_show)
-    assert output is None
+
+    await monitor.watch_changed_packages(recently_changed, list_checked_packages(), package_show)
 
 
-def test_get_resources(printer, router, package_info):
+@pytest.mark.asyncio
+async def test_get_resources(printer, router, package_info, monitor):
     content = FakeObject()
     content.text = "Fake text??"
     def get_data(url): return content
-    output = get_resource(package_info, router,
-                          None, None, printer, get_data)
-    assert output is None
+    ini = DoorstepIni(context_package=package_info)
+    await monitor.get_resource(ini, get_data)
 
 
 def test_check_empty_resources():

@@ -46,6 +46,14 @@ class CkanDataStore(DataStore):
         resources = self.client.action.resource_search(query=query)
         return resources
 
+    def package_search(self, **kwargs):
+        package_search = self.client.action.package_search(**kwargs)
+        return package_search
+
+    def package_list(self):
+        package_list = self.client.action.package_list()
+        return package_list
+
     def recently_changed_packages_activity_list(self):
         # api to get 50 most recently changed packages
         recently_changed = self.client.action.recently_changed_packages_activity_list()

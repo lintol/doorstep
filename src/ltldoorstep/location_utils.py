@@ -2,8 +2,6 @@ import sys
 import os
 import json
 import pandas
-import berlin
-import berlin.code_type
 import logging
 import re
 from itertools import chain
