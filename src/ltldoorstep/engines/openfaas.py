@@ -141,6 +141,7 @@ class OpenFaaSEngine(Engine):
             path = os.path.join(FUNCTION_CONTAINER_PREFIX, path)
 
             metadata.configuration['categoryServerUrl'] = 'http://tdatim-category-server.dni-dev.svc.cluster.local:5000'
+            metadata.configuration['openfaasHost'] =
             rq = requests.post(f'{OPENFAAS_HOST}/function/{function}', json={
                 'filename': content,
                 'workflow': path,
