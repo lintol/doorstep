@@ -1,5 +1,8 @@
 from flask import current_app
+import json
+import requests
 from flask_restful import Resource, abort, reqparse
+from ltldoorstep.file import make_file_manager
 from ltldoorstep.engines import engines
 from ltldoorstep.metadata import DoorstepContext
 from ltldoorstep.config import load_config
@@ -9,9 +12,12 @@ import os
 
 ENGINE = 'dask.threaded'
 ENGINE_CONFIG = {}
+WORKFLOW = '/home/user/.local/lib/python3.6/site-packages/ltldoorstep_examples/dt_classify_category.py'
 
 
 class Handler(Resource):
+    _bucket = None
+
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('filename', location='json')
@@ -34,15 +40,29 @@ class Handler(Resource):
         if workflow is None:
             workflow = ""
 
-        context_args = {'context': {'package': metadata}}
-
-        if args['settings']:
-            context_args['settings'] = args['settings']
-
-        metadata = DoorstepContext.from_dict(context_args)
+        metadata = DoorstepContext.from_dict(json.loads(metadata))
 
         loop = asyncio.get_event_loop()
-        result = loop.run_until_complete(engine.run(filename, workflow, metadata))
+
+        if filename.startswith('https:') or filename.startswith('http:'):
+            r = requests.get(filename)
+
+            with open(workflow, 'r') as f:
+                processors = [{
+                    'name' : filename,
+                    'filename': workflow,
+                    'content': f.read(),
+                    'metadata': metadata
+                }]
+
+            coro = engine.run_with_content(filename, r.text, processors)
+            report = loop.run_until_complete(coro)
+            result = report.compile(filename, metadata)
+        else:
+            coro = engine.run(filename, workflow, metadata, bucket=self._bucket)
+            result = loop.run_until_complete(coro)
+
+        return result
 
     @classmethod
     def preload(cls):

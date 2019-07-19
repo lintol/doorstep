@@ -38,7 +38,11 @@ async def search_gather(client, watch_changed_packages, settings):
 
         list_checked_packages = []
 
-        recent_revisions = [{'revision_id': package['id'], 'data': {'package': package}} for package in packages['results']]
+        recent_revisions = []
+        results = packages['results']
+        for package in results:
+            recent_revisions.append({'revision_id': package['id'], 'data': {'package': package}})
+
         print(f"Total packages: {len(recent_revisions)}")
 
         print("Waiting - ", TIME_DELAY)

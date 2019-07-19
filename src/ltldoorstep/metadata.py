@@ -1,12 +1,13 @@
 import json
 
 class DoorstepContext:
-    def __init__(self, lang=None, module=None, docker_image=None, docker_revision=None, context_package=None, settings={}, configuration={}, supplementary=None, context_format=None):
+    def __init__(self, lang=None, tag=None, module=None, docker_image=None, docker_revision=None, context_package=None, settings={}, configuration={}, supplementary=None, context_format=None):
         self.lang = lang
         self.docker = {
             'image': docker_image,
             'revision': docker_revision
         }
+        self.tag = tag
         self.module = module
         self.package = context_package
         self.settings = settings
@@ -44,6 +45,9 @@ class DoorstepContext:
     @classmethod
     def from_dict(cls, dct):
         kwargs = {}
+
+        if 'tag' in dct:
+            kwargs['tag'] = dct['tag']
 
         if 'module' in dct:
             kwargs['module'] = dct['module']
@@ -89,5 +93,6 @@ class DoorstepContext:
             'settings': dict(self.settings),
             'configuration': dict(self.configuration),
             'supplementary': dict(self.supplementary) if self.supplementary else None,
+            'tag': self.tag,
             'module': self.module
         }

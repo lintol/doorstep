@@ -17,4 +17,4 @@ shapely
 fuzzywuzzy
 asynctest
 geotext
-git+https://gitlab.com/datatimes/doorstep.git@c566a90
+git+https://gitlab.com/datatimes/doorstep.git@ba1ab74d25cb255ed037a4e71e0c994bf42f114d
