@@ -28,7 +28,19 @@ class OpenFaaSEngine(Engine):
     """Allow execution of workflows on a OpenFaaS cluster."""
 
     def __init__(self, config=None):
-        pass
+        if config and 'engine' in config:
+            config = config['engine']
+
+            self.openfaas_host = OPENFAAS_HOST
+            self.openfaas_cred = ''
+
+            if 'openfaas' in config:
+                config = config['openfaas']
+                if 'host' in config:
+                    self.openfaas_host = config['host']
+
+                if 'credential' in config:
+                    self.openfaas_cred = config['credential']
 
     @staticmethod
     def description():
@@ -88,7 +100,7 @@ class OpenFaaSEngine(Engine):
             'filename': filename,
             'content': filename
         }]
-        report = await self._run(filename, filename, processors)
+        report = await self._run(filename, filename, processors, self.openfaas_host, self.openfaas_cred)
         return report.compile(filename, metadata)
 
     async def monitor_pipeline(self, session):
@@ -98,7 +110,7 @@ class OpenFaaSEngine(Engine):
             # await session['completion'].acquire()
             data = await session['queue'].get()
             try:
-                result = await self._run(data['filename'], data['content'], session['processors'])
+                result = await self._run(data['filename'], data['content'], session['processors'], self.openfaas_host, self.openfaas_cred)
                 session['result'] = result
             except Exception as error:
                 __, __, exc_traceback = sys.exc_info()
@@ -124,10 +136,7 @@ class OpenFaaSEngine(Engine):
         return result
 
     @staticmethod
-    async def _run(filename, content, processors):
-        with open('/tmp/openfaas', 'r') as f:
-            pw = f.read()
-
+    async def _run(filename, content, processors, openfaas_host, openfaas_cred):
         reports = []
         for processor in processors:
             metadata = processor['metadata']
@@ -141,12 +150,11 @@ class OpenFaaSEngine(Engine):
             path = os.path.join(FUNCTION_CONTAINER_PREFIX, path)
 
             metadata.configuration['categoryServerUrl'] = 'http://tdatim-category-server.dni-dev.svc.cluster.local:5000'
-            metadata.configuration['openfaasHost'] =
-            rq = requests.post(f'{OPENFAAS_HOST}/function/{function}', json={
+            rq = requests.post(f'{openfaas_host}/function/{function}', json={
                 'filename': content,
                 'workflow': path,
                 'metadata': json.dumps(metadata.to_dict()),
-            }, auth=HTTPBasicAuth('admin', pw))
+            }, auth=HTTPBasicAuth('admin', openfaas_cred))
             report = Report.parse(rq.json())
             reports.append(report)
 

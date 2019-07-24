@@ -3,6 +3,7 @@ import logging
 import os
 import json
 import collections
+import yaml
 
 def load_config():
     config = {
