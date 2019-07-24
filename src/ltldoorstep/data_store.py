@@ -6,6 +6,9 @@ class DataStore:
 
     def package_show(self, id):
         raise NotImplementedError()
+    
+    def package_search(self, **kwargs):
+        raise NotImplementedError()
 
     def resource_search(self, query):
         raise NotImplementedError()
@@ -69,6 +72,12 @@ class DummyDataStore(DataStore):
         # ie, one package could have 4 datasets associated with it
         resources = {'resources' : self.resource_search('')}
         return resources
+
+    def package_search(self, **kwargs):
+        package_search = {'results' :
+                            ['value 1', 'value 2', 'value 3', 'value 4']
+                        }
+        return package_search
 
     def resource_search(self, query):
         # returns list of dictionaries, which mimicks what is returned from the ckan server

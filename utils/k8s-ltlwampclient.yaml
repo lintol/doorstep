@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: ltlwampclient-crawl
+  name: ltlwampclient-crawl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ltlwampclient-crawl
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: ltlwampclient-crawl
+    spec:
+      containers:
+      - image: registry.gitlab.com/datatimes/doorstep:69725824
+        name: doorstep
+        command:
+        - ltlwampclient
+        - --router-url
+        - ws://ltl-buckram-dev-crossbar:8080/ws
+        - crawl
+        - --url
+        - https://ckan.ev.openindustry.in
+        - --publish
+        - --search
+        - '{"fq": "organization:opendatani"}'
+        resources: {}
+status: {}

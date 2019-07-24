@@ -22,6 +22,11 @@ async def search_gather(client, watch_changed_packages, settings):
         while retry:
             try:
                 packages = client.package_search(**settings)
+                # package search start = 25
+                # gives an argument to that search
+                # args don't hvae to be hard coded
+                # loops through each page and starts the search again with 'cursor' moved
+                # brings in a limited number of results & cursor increases based on the results returned
                 retry = False
             except client.exception as exp:
                 print(exp)
