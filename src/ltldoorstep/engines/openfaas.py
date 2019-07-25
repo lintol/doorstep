@@ -21,7 +21,8 @@ from ..reports.report import Report, combine_reports
 OPENFAAS_HOST = 'http://127.0.0.1:8084'
 FUNCTION_CONTAINER_PREFIX = '/home/user/.local/lib/python3.6/site-packages/'
 ALLOWED_PROCESSORS = {
-    'datatimes/dt-classify-category:1': ('doorstep', 'ltldoorstep_examples/dt_classify_category.py')
+    'datatimes/dt-classify-category:1': ('doorstep', 'ltldoorstep_examples/dt_classify_category.py'),
+    'datatimes/dt-classify-location:1': ('doorstep', 'ltldoorstep_examples/dt_classify_location.py')
 }
 
 class OpenFaaSEngine(Engine):
