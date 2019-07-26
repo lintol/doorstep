@@ -6,3 +6,5 @@ functions:
     lang: python3-gunicorn
     handler: ./doorstep
     image: flaxandteal/doorstep:latest
+    secrets:
+    - ltl-doorstep-minio

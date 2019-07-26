@@ -156,6 +156,8 @@ class OpenFaaSEngine(Engine):
                 'workflow': path,
                 'metadata': json.dumps(metadata.to_dict()),
             }, auth=HTTPBasicAuth('admin', openfaas_cred))
+            if rq.status_code != 200:
+                raise RuntimeError(rq.content)
             report = Report.parse(rq.json())
             reports.append(report)
 

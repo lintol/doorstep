@@ -1,4 +1,6 @@
 from flask import current_app
+import logging
+from ltldoorstep.config import set_config, load_config
 import json
 import requests
 from flask_restful import Resource, abort, reqparse
@@ -17,6 +19,7 @@ WORKFLOW = '/home/user/.local/lib/python3.6/site-packages/ltldoorstep_examples/d
 
 class Handler(Resource):
     _bucket = None
+    _config = {}
 
     def post(self):
         parser = reqparse.RequestParser()
@@ -26,7 +29,7 @@ class Handler(Resource):
         parser.add_argument('settings', location='json')
         args = parser.parse_args()
 
-        engine = engines[ENGINE](config=ENGINE_CONFIG)
+        engine = engines[ENGINE](config=self._config)
 
         metadata = args['metadata']
         if metadata is None:
@@ -66,32 +69,20 @@ class Handler(Resource):
 
     @classmethod
     def preload(cls):
-        if 'MINIO_BUCKET' in os.environ:
-            self._bucket = os.environ['MINIO_BUCKET']
+        if cls._config is None:
+            cls._config = load_config()
 
-        if 'LINTOL_ENGINE' in os.environ:
-            engine = os.environ['LINTOL_ENGINE']
-        else:
-            engine = 'dask.threaded'
+        set_config(cls._config, 'reference-data.storage', 'minio')
+        for k in ('bucket', 'key', 'secret', 'prefix', 'endpoint'):
+            filename = os.path.join('/var', 'openfaas', 'secrets', f'minio_{k}.json')
+            with open(filename, 'r') as f:
+                value = f.read()
 
-        if 'LINTOL_PROCESSOR_DIRECTORY' in os.environ:
-            workflow = None
+            if k == 'prefix':
+                set_config(cls._config, 'reference-data.prefix', value)
+            else:
+                set_config(cls._config, f'storage.minio.{k}', value)
 
-            for f in os.listdir(os.environ['LINTOL_PROCESSOR_DIRECTORY']):
-                if f.endswith('.py'):
-                    workflow = f
-                    break
-
-            if not workflow:
-                raise RuntimeError("No processor directory found: LINTOL_PROCESSOR_DIRECTORY has no python file")
-        else:
-            raise RuntimeError("No processor directory found: LINTOL_PROCESSOR_DIRECTORY must be set")
-
+        debug = cls._config['debug'] if 'debug' in cls._config else False
         logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
         cls.logger = logging.getLogger(__name__)
-        cls.workflow = workfloW
-
-    @classmethod
-    def preload(cls):
-        print("!!!")
-        return True
