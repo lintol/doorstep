@@ -13,7 +13,7 @@ stages:
 - deploy
 
 services:
-- docker:18-dind
+- docker:18.09.7-dind
 
 before_script:
   - echo "Registering with token $CI_BUILD_TOKEN"
