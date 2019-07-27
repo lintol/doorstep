@@ -37,7 +37,7 @@ def load_config():
 
     try:
         with open(os.path.join(os.path.expanduser("~"), '.ltldoorsteprc.yaml'), 'r') as config_file:
-            config.update(yaml.load(config_file))
+            config.update(yaml.load(config_file, Loader=yaml.SafeLoader))
     except IOError:
         logging.info(_("No config file found"))
 
