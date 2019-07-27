@@ -94,7 +94,9 @@ def process(ctx, filename, workflow, engine, metadata, package, configuration):
     bucket = ctx.obj['bucket']
 
     engine, config = get_engine(engine, config)
-    click.echo(_("Engine: %s" % engine))
+
+    if ctx.obj['DEBUG']:
+        click.echo(_("Engine: %s" % engine))
     engine = engines[engine](config=config)
 
     if metadata is None:

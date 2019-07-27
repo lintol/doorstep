@@ -18,3 +18,4 @@ fuzzywuzzy
 asynctest
 geotext
 retry
+dateparser

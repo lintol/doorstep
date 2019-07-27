@@ -12,7 +12,6 @@ def execute(filename, module_name, metadata):
 def run(filename, mod, metadata, compiled=True):
     """Real runner for a given ltldoorstep processor module and datafile."""
 
-    print('PROC', mod.processor)
     processor = mod.processor()
     workflow = processor.build_workflow(filename, metadata)
 

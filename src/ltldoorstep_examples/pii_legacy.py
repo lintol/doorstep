@@ -22,6 +22,7 @@ from ltldoorstep.reports.report import TabularReport, combine_reports
 import subprocess
 import time
 import os
+from ltldoorstep import regex_utils as utils
 
 pii_details = {
     'N': 'name',
@@ -51,19 +52,19 @@ def check_regex(df, rprt, rx, code, error_message):
     return rprt
 
 def check_mac(df, rprt):
-    rx = r'((\d|([a-f]|[A-F])){2}:){5}(\d|([a-f]|[A-F])){2}'
+    rx = utils.get_regex('mac-address')
     return check_regex(df, rprt, re.compile(rx), 'mac-address', _("Possible MAC address found"))
 
 def check_postcodes(df, rprt):
-    rx = r'([Gg][Ii][Rr] 0[Aa]{2})|((([A-Za-z][0-9]{1,2})|(([A-Za-z][A-Ha-hJ-Yj-y][0-9]{1,2})|(([A-Za-z][0-9][A-Za-z])|([A-Za-z][A-Ha-hJ-Yj-y][0-9]?[A-Za-z])))) ?[0-9][A-Za-z]{2})'
+    rx = utils.get_regex('uk-postcode')
     return check_regex(df, rprt, re.compile(rx), 'uk-postcode', _("Possible UK postcode found"))
 
 def check_email(df, rprt):
-    rx = r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,63}'
+    rx = utils.get_regex('email-address')
     return check_regex(df, rprt, re.compile(rx), 'email', _("Possible email address found"))
 
 def check_ips(df, rprt):
-    rx = r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
+    rx = utils.get_regex('ip-address')
     return check_regex(df, rprt, re.compile(rx), 'ip', _("Possible IP address found"))
 
 
