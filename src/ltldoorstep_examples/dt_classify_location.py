@@ -172,7 +172,7 @@ def dt_classify_location(data, rprt, metadata, word_matrix):
                 else:
                     overall_results[result] = 1
 
-    if 'render-codes' in metadata.configuration and metadata.configuration['render-codes']:
+    if 'renderCodes' in metadata.configuration and metadata.configuration['renderCodes']:
         berlin = load_berlin()
         overall_results = [(berlin.get_code(r), n) for r, n in overall_results.items()]
         json_results = [(r.to_json(), n) for r, n in overall_results]
