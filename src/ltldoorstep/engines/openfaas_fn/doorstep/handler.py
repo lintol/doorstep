@@ -69,19 +69,18 @@ class Handler(Resource):
 
     @classmethod
     def preload(cls):
-        if cls._config is None:
-            cls._config = load_config()
+        cls._config = load_config()
 
-        set_config(cls._config, 'reference-data.storage', 'minio')
+        set_config('reference-data.storage', 'minio')
         for k in ('bucket', 'key', 'secret', 'prefix', 'endpoint'):
             filename = os.path.join('/var', 'openfaas', 'secrets', f'minio_{k}')
             with open(filename, 'r') as f:
                 value = f.read()
 
             if k == 'prefix':
-                set_config(cls._config, 'reference-data.prefix', value)
+                set_config('reference-data.prefix', value)
             else:
-                set_config(cls._config, f'storage.minio.{k}', value)
+                set_config(f'storage.minio.{k}', value)
 
         debug = cls._config['debug'] if 'debug' in cls._config else False
         logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)

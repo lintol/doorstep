@@ -21,7 +21,7 @@ def set_config(key, value):
 
     keys = key.split('.')
 
-    level = config
+    level = _active_config
     for k in keys[:-1]:
         if k not in level:
             level[k] = {}
