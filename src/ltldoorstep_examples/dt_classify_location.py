@@ -9,6 +9,7 @@ import logging
 import sys
 import os
 import ltldoorstep
+from ltldoorstep.config import load_reference_data
 from ltldoorstep.processor import DoorstepProcessor
 from ltldoorstep.reports import report
 from ltldoorstep.location_utils import load_berlin
@@ -18,7 +19,7 @@ from dask.threaded import get
 EXCLUDE_EMPTY_MATCHES = True
 PROVIDE_SUGGESTIONS = True
 GUESS_THRESHOLD = 85.0
-DEFAULT_REGISTER_LOCATION_WORDS = os.path.join(os.path.dirname(ltldoorstep.__file__), '../..', 'tests', 'examples', 'data', 'register-location-words.json')
+DEFAULT_REGISTER_LOCATION_WORDS = 'register-location-words.json'
 DEFAULT_REGISTER_LOCATIONS = {k: os.path.join(os.path.dirname(ltldoorstep.__file__), '../..', 'tests', 'examples', 'data', f) for k, f in {
     'countries': 'register-countries.json',
     'local-government-district-nir': 'register-geography-local-government-district-nir.json',
@@ -34,6 +35,7 @@ DEFAULT_REGISTER_LOCATIONS = {k: os.path.join(os.path.dirname(ltldoorstep.__file
 
 
 def load_word_matrix(location):
+    location = load_reference_data(location)
     with open(location, 'r') as word_f:
         word_matrix = json.load(word_f)
     return word_matrix

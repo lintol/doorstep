@@ -19,3 +19,4 @@ asynctest
 geotext
 retry
 dateparser
+minio

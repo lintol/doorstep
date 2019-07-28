@@ -14,8 +14,11 @@ except ImportError:
     MinioResponseError = RuntimeError
 
 _config = {}
+_active_config = {}
 
-def set_config(config, key, value):
+def set_config(key, value):
+    global _active_config
+
     keys = key.split('.')
 
     level = config
@@ -27,7 +30,7 @@ def set_config(config, key, value):
     level[-1] = value
 
 def load_config():
-    global _config
+    global _config, _active_config
 
     config = {
         'report': {
@@ -42,12 +45,18 @@ def load_config():
         logging.info(_("No config file found"))
 
     config.update(_config)
+    _active_config = config
 
     return config
 
 _mo = None
-def load_from_minio(config, prefix, location):
-    global _mo
+def load_from_minio(prefix, location):
+    global _mo, _active_config
+    config = _active_config
+
+    path = os.path.join('/tmp', 'minio', location)
+    if os.path.exists(path):
+        return path
 
     if _mo is None:
         _mo = Minio(
@@ -60,11 +69,12 @@ def load_from_minio(config, prefix, location):
     mo_bucket = config['storage']['minio']['bucket']
 
     try:
-        data_object = _mo.get_object(mo_bucket, location)
+        print(location, mo_bucket)
+        print(config['storage']['minio'])
+        data_object = _mo.get_object(mo_bucket, f'{prefix}/{location}')
         stream_req = io.BytesIO()
         os.makedirs(os.path.join('/tmp', 'minio'), exist_ok=True)
-        path = os.path.join('/tmp', 'minio', location)
-        with open(path, 'rb') as f:
+        with open(path, 'wb') as f:
             for d in data_object.stream(32*1024):
                 f.write(d)
     except MinioResponseError as err:
@@ -73,11 +83,14 @@ def load_from_minio(config, prefix, location):
     return path
 
 
-def load_reference_data(config, location):
+def load_reference_data(location):
+    global _active_config
+    config = _active_config
+
     path = os.path.join(os.path.dirname(__file__), '../../..', 'tests', 'examples', 'data', location)
 
-    if 'reference-storage' in config:
+    if 'reference-data' in config:
         if 'storage' in config['reference-data'] and config['reference-data']['storage'] == 'minio':
-            path = load_from_minio(config, config['reference-data']['prefix'], location)
+            path = load_from_minio(config['reference-data']['prefix'], location)
 
     return path

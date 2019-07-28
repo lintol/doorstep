@@ -74,7 +74,7 @@ class Handler(Resource):
 
         set_config(cls._config, 'reference-data.storage', 'minio')
         for k in ('bucket', 'key', 'secret', 'prefix', 'endpoint'):
-            filename = os.path.join('/var', 'openfaas', 'secrets', f'minio_{k}.json')
+            filename = os.path.join('/var', 'openfaas', 'secrets', f'minio_{k}')
             with open(filename, 'r') as f:
                 value = f.read()
 
@@ -86,3 +86,5 @@ class Handler(Resource):
         debug = cls._config['debug'] if 'debug' in cls._config else False
         logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
         cls.logger = logging.getLogger(__name__)
+
+        return True

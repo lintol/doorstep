@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "52f1f8ee9a1e5d1724cf932014ad2baf73bcdec36586e212721c962dafc096f3"
+            "sha256": "72faeb00fdb7f855c9e159e3942ed6c1dbeda87e2cd05e48f0ef40f80f30f7a7"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -229,6 +229,12 @@
             "index": "pypi",
             "version": "==0.3.7"
         },
+        "future": {
+            "hashes": [
+                "sha256:67045236dcfd6816dc439556d009594abf643e5eb48992e36beac09c2ca659b8"
+            ],
+            "version": "==0.17.1"
+        },
         "fuzzywuzzy": {
             "hashes": [
                 "sha256:5ac7c0b3f4658d2743aa17da53a55598144edbc5bee3c6863840636e6926f254",
@@ -429,6 +435,14 @@
             ],
             "version": "==1.1.1"
         },
+        "minio": {
+            "hashes": [
+                "sha256:05edfad9ef8543074c7a6b605c72a8858c813c766e060d9f771270dd81317dcb",
+                "sha256:3a6812a55eb4affe937942fcdd980631512267532687e8e814b2b8a560754085"
+            ],
+            "index": "pypi",
+            "version": "==4.0.18"
+        },
         "msgpack": {
             "hashes": [
                 "sha256:26cb40116111c232bc235ce131cc3b4e76549088cb154e66a2eb8ff6fcc907ec",
@@ -575,9 +589,9 @@
         },
         "pyrsistent": {
             "hashes": [
-                "sha256:50cffebc87ca91b9d4be2dcc2e479272bcb466b5a0487b6c271f7ddea6917e14"
+                "sha256:34b47fa169d6006b32e99d4b3c4031f155e6e68ebcc107d6454852e8e0ee6533"
             ],
-            "version": "==0.15.3"
+            "version": "==0.15.4"
         },
         "python-dateutil": {
             "hashes": [
