@@ -1,7 +1,9 @@
 from flask import current_app
+
 import logging
 from ltldoorstep.config import set_config, load_config
 from ltldoorstep import config as lconfig
+from ltldoorstep.location_utils import load_berlin
 import json
 import requests
 from flask_restful import Resource, abort, reqparse
@@ -73,17 +75,19 @@ class Handler(Resource):
         cls._config = load_config()
 
         set_config('reference-data.storage', 'minio')
+        set_config('storage.minio.region', 'us-east-1') # Fixed by Minio
         for k in ('bucket', 'key', 'secret', 'prefix', 'endpoint'):
             filename = os.path.join('/var', 'openfaas', 'secrets', f'minio_{k}')
             with open(filename, 'r') as f:
-                value = f.read()
+                value = f.read().strip()
 
             if k == 'prefix':
                 set_config('reference-data.prefix', value)
             else:
                 set_config(f'storage.minio.{k}', value)
 
-        logging.error(lconfig._active_config)
+        load_berlin()
+
         debug = cls._config['debug'] if 'debug' in cls._config else False
         logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
         cls.logger = logging.getLogger(__name__)

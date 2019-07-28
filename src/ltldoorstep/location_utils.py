@@ -1,3 +1,4 @@
+from .config import load_reference_data
 import sys
 import os
 import json
@@ -34,7 +35,7 @@ class BerlinInterface:
         def full_path(f):
             if type(f) is list:
                 return [full_path(i) for i in f]
-            return os.path.join(DIR, '..', '..', 'tests', 'examples', 'data', f)
+            return load_reference_data(f)
 
         local_sources = {k: full_path(v) for k, v in self.data_sources.items()}
 
