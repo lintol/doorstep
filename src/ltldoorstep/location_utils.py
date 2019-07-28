@@ -32,6 +32,8 @@ class BerlinInterface:
         return self._code_bank.from_identifier(full_code)
 
     def load(self):
+        import berlin.code_type
+
         def full_path(f):
             if type(f) is list:
                 return [full_path(i) for i in f]
