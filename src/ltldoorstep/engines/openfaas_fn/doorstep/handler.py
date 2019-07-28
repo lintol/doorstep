@@ -1,6 +1,7 @@
 from flask import current_app
 import logging
 from ltldoorstep.config import set_config, load_config
+from ltldoorstep import config as lconfig
 import json
 import requests
 from flask_restful import Resource, abort, reqparse
@@ -82,6 +83,7 @@ class Handler(Resource):
             else:
                 set_config(f'storage.minio.{k}', value)
 
+        logging.error(lconfig._active_config)
         debug = cls._config['debug'] if 'debug' in cls._config else False
         logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
         cls.logger = logging.getLogger(__name__)

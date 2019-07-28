@@ -27,7 +27,7 @@ def set_config(key, value):
             level[k] = {}
         level = level[k]
 
-    level[-1] = value
+    level[keys[-1]] = value
 
 def load_config():
     global _config, _active_config
