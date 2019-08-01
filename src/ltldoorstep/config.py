@@ -69,8 +69,6 @@ def load_from_minio(prefix, location):
     mo_bucket = config['storage']['minio']['bucket']
 
     try:
-        print(location, mo_bucket)
-        print(config['storage']['minio'])
         data_object = _mo.get_object(mo_bucket, f'{prefix}/{location}')
         stream_req = io.BytesIO()
         os.makedirs(os.path.dirname(path), exist_ok=True)

@@ -14,6 +14,7 @@ geojson_utils
 geopandas
 requests
 shapely
+python-Levenshtein
 fuzzywuzzy
 asynctest
 geotext

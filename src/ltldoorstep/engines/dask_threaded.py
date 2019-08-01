@@ -106,8 +106,16 @@ class DaskThreadedEngine(Engine):
                 workflow_module = workflow_module.decode('utf-8')
 
             metadata = processor['metadata']
-            with make_file_manager(content={filename: content, processor['filename']: workflow_module}) as file_manager:
-                mod = SourceFileLoader('custom_processor', file_manager.get(processor['filename']))
+            if not filename:
+                filename = 'data.file'
+
+            if processor['filename']:
+                processor_filename = processor['filename']
+            else:
+                processor_filename = 'processor.py'
+
+            with make_file_manager(content={filename: content, processor_filename: workflow_module}) as file_manager:
+                mod = SourceFileLoader('custom_processor', file_manager.get(processor_filename))
                 local_file = file_manager.get(filename)
                 report = dask_run(local_file, mod.load_module(), metadata, compiled=False)
                 reports.append(report)
