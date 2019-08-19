@@ -13,7 +13,20 @@ from .engine import Engine
 import asyncio
 from asyncio import Event, ensure_future, Queue
 from ..ini import DoorstepIni
+from ..config import examples_dir
+import re
+import os
 
+def try_example_processor(processor_name):
+    processor_file = re.sub(r'.*/([\w-]*):.*', r'\1', processor_name).replace('-', '_')
+    processor_file = os.path.join(examples_dir(), f'{processor_file}.py')
+
+    if os.path.exists(processor_file):
+        return processor_file
+
+    logging.warn(_('Could not find processor in examples: ') + processor_name)
+
+    return False
 
 class DaskThreadedEngine(Engine):
     """Allow execution of a dask workflow within this process."""
@@ -115,7 +128,14 @@ class DaskThreadedEngine(Engine):
                 processor_filename = 'processor.py'
 
             with make_file_manager(content={filename: content, processor_filename: workflow_module}) as file_manager:
-                mod = SourceFileLoader('custom_processor', file_manager.get(processor_filename))
+                if workflow_module:
+                    mod = file_manager.get(processor_filename)
+                else:
+                    mod = try_example_processor(metadata.tag)
+                    if not mod:
+                        raise RuntimeError(_("The requested processor had no body, nor was an example processor."))
+
+                mod = SourceFileLoader('custom_processor', mod)
                 local_file = file_manager.get(filename)
                 report = dask_run(local_file, mod.load_module(), metadata, compiled=False)
                 reports.append(report)

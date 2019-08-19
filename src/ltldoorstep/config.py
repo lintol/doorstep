@@ -92,3 +92,7 @@ def load_reference_data(location):
             path = load_from_minio(config['reference-data']['prefix'], location)
 
     return path
+
+def examples_dir():
+    import ltldoorstep_examples
+    return os.path.dirname(ltldoorstep_examples.__file__)

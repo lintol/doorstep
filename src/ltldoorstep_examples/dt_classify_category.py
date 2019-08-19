@@ -3,6 +3,7 @@
 """
 
 import json
+import time
 import gettext
 import pandas as p
 import logging
@@ -18,6 +19,8 @@ import requests
 import json
 
 MAX_CATEGORIES_PER_ITEM = 20
+MAX_CATEGORY_SERVER_ATTEMPTS = 4
+TIMEOUT_SLEEP = 5
 
 METADATA_ROWS = {
     'name': (10, lambda x, _: [x['name'].replace('-', ' ')] if 'name' in x and x['name'] else []),
@@ -43,7 +46,15 @@ def get_sentences_from_metadata(context, filename):
 
 def get_categories(sentences, context):
     category_server = context.get_setting('categoryServerUrl', 'http://localhost:8000/')
-    result = requests.post(category_server, json={'sentences': sentences})
+
+    success = False
+    for attempt in range(MAX_CATEGORY_SERVER_ATTEMPTS):
+        try:
+            result = requests.post(category_server, json={'sentences': sentences})
+        except Exception as e: # TODO: make this only handle requests errors
+            time.sleep(TIMEOUT_SLEEP)
+        else:
+            break
 
     if result.status_code == 400:
         raise RuntimeError(_("Malformed category request: ") + result.content.decode('utf-8'))

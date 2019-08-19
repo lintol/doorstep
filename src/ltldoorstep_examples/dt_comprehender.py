@@ -204,6 +204,9 @@ def classify(rprt, spatial_pair, timeseries_pair):
     tags = []
 
     for typ, (match, total) in types.items():
+        if total < 1e-10:
+            continue
+
         include = match / total > MATCH_RATIO
 
         if include:

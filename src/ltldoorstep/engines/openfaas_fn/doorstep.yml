@@ -6,5 +6,9 @@ functions:
     lang: python3-gunicorn
     handler: ./doorstep
     image: flaxandteal/doorstep:latest
+    environment: # move to secrets
+      read_timeout: 600s
+      write_timeout: 600s
+      exec_timeout: 600s
     secrets:
     - ltl-doorstep-minio

@@ -1,4 +1,5 @@
 import json
+import logging
 
 class DoorstepContext:
     def __init__(self, lang=None, tag=None, module=None, docker_image=None, docker_revision=None, context_package=None, settings={}, configuration={}, supplementary=None, context_format=None):
@@ -73,6 +74,7 @@ class DoorstepContext:
 
         if 'lang' in dct:
             kwargs['lang'] = dct['lang']
+        logging.info(dct)
 
         return cls(**kwargs)
 
