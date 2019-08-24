@@ -33,6 +33,12 @@ class LintolDoorstepException(Serializable, ApplicationError):
             return self.exception.status_code
         return None
 
+    @property
+    def exception_name(self):
+        if isinstance(self.exception, str):
+            return self.exception
+        return type(self.exception).__name__
+
     def serialize_exception(self):
         if self.exc_info:
             exc_type, exc_value, exc_traceback = self.exc_info
@@ -45,7 +51,7 @@ class LintolDoorstepException(Serializable, ApplicationError):
         return {
             'code': self.status_code,
             'processor': self.processor,
-            'exception': type(self.exception).__name__,
+            'exception': self.exception_name,
             'message': self.message
         }
 

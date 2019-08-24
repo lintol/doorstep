@@ -54,13 +54,19 @@ def get_categories(sentences, context):
     category_server = category_server.replace('{LANG}', lang_code)
 
     success = False
+    exception = None
+    result = None
     for attempt in range(MAX_CATEGORY_SERVER_ATTEMPTS):
         try:
             result = requests.post(category_server, json={'sentences': sentences})
         except Exception as e: # TODO: make this only handle requests errors
             time.sleep(TIMEOUT_SLEEP)
+            exception = e
         else:
             break
+
+    if exception and not result:
+        raise exception
 
     if result.status_code == 400:
         raise RuntimeError(_("Malformed category request: ") + result.content.decode('utf-8'))

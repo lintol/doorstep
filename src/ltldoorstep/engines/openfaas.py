@@ -159,7 +159,15 @@ class OpenFaaSEngine(Engine):
             except Exception as e:
                 logging.error(e)
 
-            logging.error(rq.content)
+            content = rq.json()
+            if 'error' in content and content['error']:
+                exception = json.loads(content['exception'])
+                raise LintolDoorstepException(
+                    exception['exception'],
+                    processor=exception['processor'],
+                    message=exception['message'],
+                    status_code=exception['code']
+                )
 
             report = Report.parse(rq.json())
             reports.append(report)

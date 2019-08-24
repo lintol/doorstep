@@ -75,8 +75,8 @@ class Handler(Resource):
             report = loop.run_until_complete(coro)
         except Exception as e:
             if not isinstance(e, LintolDoorstepException):
-                e = LintolDoorstepException(exception)
-            return {'error': 1, 'exception': json_dumps(e)}
+                e = LintolDoorstepException(e)
+            return {'error': 1, 'exception': json.loads(json_dumps(e))}
 
         result = report.compile(filename, metadata)
 
