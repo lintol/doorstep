@@ -60,6 +60,9 @@ async def do_crawl(component, url, workflow, printer, publish, update=False):
 async def announce_resource(component, resource, ini, source, update=False):
     """When we join the server, execute the client workflow."""
 
+    if update:
+        logging.error("Using force-update")
+
     component.publish('com.ltldoorstep.event_found_resource', resource['id'], resource, ini.to_dict(), source, update)
 
 

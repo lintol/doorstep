@@ -179,5 +179,5 @@ async def monitor_for_changes(cmpt, client, printer, gather_fn, update=False):
     """
     creates Monitor object
     """
-    monitor = Monitor(cmpt, client, printer, gather_fn, announce_resource, update=False)
+    monitor = Monitor(cmpt, client, printer, gather_fn, announce_resource, update=update)
     await monitor.run()

@@ -148,17 +148,15 @@ class OpenFaaSEngine(Engine):
                 tag = processor['name']
             else:
                 raise RuntimeError(_("Could not find {} or {} in allowed processors for OpenFaaS engine.").format(metadata.tag, processor['name']))
-            function, path = ALLOWED_PROCESSORS[tag]
-            path = os.path.join(FUNCTION_CONTAINER_PREFIX, path)
 
-            metadata.configuration['categoryServerUrl'] = 'http://tdatim-category-server.dni-dev.svc.cluster.local:5000'
             rq = requests.post(f'{openfaas_host}/function/{function}', json={
                 'filename': content,
-                'workflow': path,
+                'workflow': tag,
                 'metadata': json.dumps(metadata.to_dict()),
             }, auth=HTTPBasicAuth('admin', openfaas_cred))
 
-            rq.raise_for_status()
+            if rq.status_code != 200:
+                logging.error(rq.content)
 
             report = Report.parse(rq.json())
             reports.append(report)

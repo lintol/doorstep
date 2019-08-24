@@ -11,6 +11,9 @@ from ltldoorstep.file import make_file_manager
 from ltldoorstep.engines import engines
 from ltldoorstep.metadata import DoorstepContext
 from ltldoorstep.config import load_config
+from ltldoorstep.encoders import json_dumps
+from ltldoorstep.errors import LintolDoorstepException
+from ltldoorstep.engines.openfaas import ALLOWED_PROCESSORS, FUNCTION_CONTAINER_PREFIX
 
 import asyncio
 import os
@@ -43,8 +46,11 @@ class Handler(Resource):
             filename = ""
 
         workflow = args['workflow']
-        if workflow is None:
-            workflow = ""
+        if workflow not in ALLOWED_PROCESSORS:
+            raise RuntimeError(_("Could not find {} in allowed processors for OpenFaaS engine.").format(workflow))
+
+        function, path = ALLOWED_PROCESSORS[workflow]
+        workflow = os.path.join(FUNCTION_CONTAINER_PREFIX, path)
 
         metadata = DoorstepContext.from_dict(json.loads(metadata))
 
@@ -62,11 +68,16 @@ class Handler(Resource):
                 }]
 
             coro = engine.run_with_content(filename, r.text, processors)
-            report = loop.run_until_complete(coro)
-            result = report.compile(filename, metadata)
         else:
             coro = engine.run(filename, workflow, metadata, bucket=self._bucket)
-            result = loop.run_until_complete(coro)
+
+        try:
+            report = loop.run_until_complete(coro)
+        except Exception as e:
+            if not isinstance(e, LintolDoorstepException):
+                e = LintolDoorstepException(exception)
+            abort(500, json_dumps(e))
+        result = report.compile(filename, metadata)
 
         return result
 

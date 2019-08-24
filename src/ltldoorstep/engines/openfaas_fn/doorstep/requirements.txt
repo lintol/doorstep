@@ -19,3 +19,4 @@ fuzzywuzzy
 asynctest
 geotext
 dateparser
+git+https://github.com/flaxandteal/berlin.git@3885d
