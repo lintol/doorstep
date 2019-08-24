@@ -15,7 +15,7 @@ def ckan_retry(f, **kwargs):
     # runs code until it's successful?
     return retry_api.retry_call(f, fkwargs=kwargs, tries=6, delay=1)
 
-async def do_crawl(component, url, workflow, printer, publish):
+async def do_crawl(component, url, workflow, printer, publish, update=False):
     """
     gets all the datasets on the ckan instance
     """
@@ -50,17 +50,17 @@ async def do_crawl(component, url, workflow, printer, publish):
                 if publish:
                     # what is publish in this context?
                     # probably, if there is something to publish that is returned from the component, then do whatevs
-                    result = await announce_resource(component, resource, ini, url)
+                    result = await announce_resource(component, resource, ini, url, update)
             else:
                 if not resource['format']:
                     print(resource)
                 logging.warn("Not allowed format: {}".format(resource['format']))
     printer.print_output()
 
-async def announce_resource(component, resource, ini, source):
+async def announce_resource(component, resource, ini, source, update=False):
     """When we join the server, execute the client workflow."""
 
-    component.publish('com.ltldoorstep.event_found_resource', resource['id'], resource, ini.to_dict(), source)
+    component.publish('com.ltldoorstep.event_found_resource', resource['id'], resource, ini.to_dict(), source, update)
 
 
 async def execute_workflow(component, filename, workflow, ini):

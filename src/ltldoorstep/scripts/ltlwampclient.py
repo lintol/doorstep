@@ -84,8 +84,9 @@ def process(ctx, filename, workflow, metadata):
 @click.option('--watch-refresh-delay', help='How long until this calls the given CKAN target again', default='60s')
 @click.option('--publish/--no-publish', default=False)
 @click.option('--dummy-ckan/--no-dummy-ckan', default=False)
+@click.option('--force-update/--no-force-update', default=False)
 @click.pass_context
-def crawl(ctx, workflow, url, search, watch, watch_refresh_delay, publish, dummy_ckan):
+def crawl(ctx, workflow, url, search, watch, watch_refresh_delay, publish, dummy_ckan, force_update):
     """
     Crawl function gets the URL of all packages in the CKAN instance.
     Adding the 'watch' option only gets it to look for datasets added/altered since crawl started to run.
@@ -124,7 +125,8 @@ def crawl(ctx, workflow, url, search, watch, watch_refresh_delay, publish, dummy
                 cmpt,
                 client,
                 printer,
-                gather_fn
+                gather_fn,
+                force_update
             )
         except Exception as e:
             # stops the code regardless of the exception thrown

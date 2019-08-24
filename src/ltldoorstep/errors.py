@@ -39,7 +39,7 @@ class LintolDoorstepException(Serializable, ApplicationError):
             return str(self.exception) + '\n' \
                 + '\n'.join(traceback.format_tb(exc_traceback))
         else:
-            return str(self.excpetion)
+            return str(self.exception)
 
     def __serialize__(self):
         return {

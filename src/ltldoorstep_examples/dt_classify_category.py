@@ -47,6 +47,12 @@ def get_sentences_from_metadata(context, filename):
 def get_categories(sentences, context):
     category_server = context.get_setting('categoryServerUrl', 'http://localhost:8000/')
 
+    if context.lang and not context.lang.startswith('en'):
+        lang_code = context.lang[0:2]
+    else:
+        lang_code = 'en'
+    category_server = category_server.replace('{LANG}', lang_code)
+
     success = False
     for attempt in range(MAX_CATEGORY_SERVER_ATTEMPTS):
         try:

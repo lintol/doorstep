@@ -114,12 +114,13 @@ class Monitor:
     """ Monitor class acts as the interface for WAMP
     handles functionality that checks for new packages & retrives resources from the client
     """
-    def __init__(self, cmpt, client, printer, gather_fn, announce_fn):
+    def __init__(self, cmpt, client, printer, gather_fn, announce_fn, update=False):
         self.cmpt = cmpt # create the component
         self.client = client # creates the client from data_store. could be either dummy or ckan obj
         self.printer = printer
         self.gather_fn = gather_fn
         self.announce_fn = announce_fn
+        self.update = update
 
     async def run(self):
         await self.gather_fn(self.client, self.watch_changed_packages)
@@ -171,12 +172,12 @@ class Monitor:
             # finds where the resource is coming from, ie ckan or dummy
             print(f'Announcing resource: {resource["url"]} from {source}')
             # calls async function that doesn't create a report, but gets the data???
-            await self.announce_fn(self.cmpt, resource, ini, source)
+            await self.announce_fn(self.cmpt, resource, ini, source, self.update)
 
 
-async def monitor_for_changes(cmpt, client, printer, gather_fn):
+async def monitor_for_changes(cmpt, client, printer, gather_fn, update=False):
     """
     creates Monitor object
     """
-    monitor = Monitor(cmpt, client, printer, gather_fn, announce_resource)
+    monitor = Monitor(cmpt, client, printer, gather_fn, announce_resource, update=False)
     await monitor.run()
