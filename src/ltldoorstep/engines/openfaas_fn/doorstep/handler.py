@@ -76,7 +76,8 @@ class Handler(Resource):
         except Exception as e:
             if not isinstance(e, LintolDoorstepException):
                 e = LintolDoorstepException(exception)
-            abort(500, json_dumps(e))
+            return {'error': 1, 'exception': json_dumps(e)}
+
         result = report.compile(filename, metadata)
 
         return result

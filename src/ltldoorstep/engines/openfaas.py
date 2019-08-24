@@ -148,15 +148,18 @@ class OpenFaaSEngine(Engine):
                 tag = processor['name']
             else:
                 raise RuntimeError(_("Could not find {} or {} in allowed processors for OpenFaaS engine.").format(metadata.tag, processor['name']))
+            function, path = ALLOWED_PROCESSORS[tag]
 
-            rq = requests.post(f'{openfaas_host}/function/{function}', json={
-                'filename': content,
-                'workflow': tag,
-                'metadata': json.dumps(metadata.to_dict()),
-            }, auth=HTTPBasicAuth('admin', openfaas_cred))
+            try:
+                rq = requests.post(f'{openfaas_host}/function/{function}', json={
+                    'filename': content,
+                    'workflow': tag,
+                    'metadata': json.dumps(metadata.to_dict()),
+                }, auth=HTTPBasicAuth('admin', openfaas_cred))
+            except Exception as e:
+                logging.error(e)
 
-            if rq.status_code != 200:
-                logging.error(rq.content)
+            logging.error(rq.content)
 
             report = Report.parse(rq.json())
             reports.append(report)
