@@ -3,7 +3,7 @@ janus
 colorama
 dask
 distributed
-pandas
+pandas==0.25.1
 tabulate
 pypachy
 Flask
