@@ -8,15 +8,8 @@ pypachy
 Flask
 boto3
 flask_restful
-goodtables
 ckanapi
-geojson_utils
-geopandas
 requests
-shapely
-fuzzywuzzy
 asynctest
-geotext
 retry
-dateparser
 minio

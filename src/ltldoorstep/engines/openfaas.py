@@ -21,8 +21,8 @@ from ..reports.report import Report, combine_reports
 OPENFAAS_HOST = 'http://127.0.0.1:8084'
 FUNCTION_CONTAINER_PREFIX = '/home/user/.local/lib/python3.6/site-packages/'
 ALLOWED_PROCESSORS = {
-    'datatimes/dt-classify-category:1': ('doorstep', 'ltldoorstep_examples/dt_classify_category.py'),
-    'datatimes/dt-classify-location:1': ('doorstep', 'ltldoorstep_examples/dt_classify_location.py'),
+    'datatimes/dt-classify-category:1': ('ltl-datatimes-dt-classify-category', 'ltldoorstep_examples/dt_classify_category.py'),
+    'datatimes/dt-classify-location:1': ('ltl-datatimes-dt-classify-location', 'ltldoorstep_examples/dt_classify_location.py'),
     'datatimes/dt-comprehender:1': ('doorstep', 'ltldoorstep_examples/dt_comprehender.py')
 }
 
@@ -159,6 +159,7 @@ class OpenFaaSEngine(Engine):
             except Exception as e:
                 logging.error(e)
 
+            logging.error(rq.text)
             content = rq.json()
             if 'error' in content and content['error']:
                 exception = json.loads(content['exception'])
