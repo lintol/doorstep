@@ -46,10 +46,6 @@ setup(
     },
     install_requires=[
         'Click<7.0',
-        'fiona',
-        'shapely',
-        'geojson_utils',
-        'geopandas',
         'janus',
         'colorama',
         'dask',
@@ -57,9 +53,6 @@ setup(
         'tabulate',
         'flask>1.0',
         'flask_restful',
-        'fuzzywuzzy',
-        'unicodeblock',
-        'goodtables',
         'pypachy',
         'pandas',
         'boto3',
@@ -68,6 +61,7 @@ setup(
         'requests',
         'docker',
         'retry',
+        'minio',
         'aiodocker'
     ],
     include_package_data=True,

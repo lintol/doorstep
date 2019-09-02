@@ -1,4 +1,5 @@
 Click<7.0
+janus
 colorama
 dask
 distributed
@@ -13,3 +14,5 @@ requests
 asynctest
 retry
 minio
+aiodocker
+docker
