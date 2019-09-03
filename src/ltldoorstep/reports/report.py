@@ -261,7 +261,7 @@ class Report(Serializable):
 
         valid = not bool(report[logging.ERROR])
 
-        return {
+        results = {
             'supplementary': supplementary,
             'error-count': sum([len(r) for r in report.values()]),
             'valid': valid,
@@ -288,6 +288,8 @@ class Report(Serializable):
             'table-count': 1,
             'time': self.properties['time']
         }
+
+        return results
 
     def add_supplementary(self, typ, source, name):
         logging.warning('Adding supplementary')

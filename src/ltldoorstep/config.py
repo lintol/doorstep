@@ -35,6 +35,15 @@ def load_config():
     config = {
         'report': {
             'max-length-chars': 500000
+        },
+        'engine': {
+            'openfaas': {
+                'allowed-functions': {
+                    'datatimes/dt-classify-category:1': 'ltl-datatimes-dt-classify-category',
+                    'datatimes/dt-classify-location:1': 'ltl-datatimes-dt-classify-location',
+                    'datatimes/dt-comprehender:1': 'ltl-datatimes-dt-comprehender'
+                }
+            }
         }
     }
 

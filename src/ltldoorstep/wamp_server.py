@@ -75,7 +75,7 @@ class DataResource():
 
     async def post(self, filename, content, redirect, session=None):
         logging.warn(_("Data posted"))
-        if redirect:
+        if redirect and self._engine.download():
             if content.startswith('file://'):
                 with open(content[len('file://'):], 'r') as file_obj:
                     content = file_obj.read()

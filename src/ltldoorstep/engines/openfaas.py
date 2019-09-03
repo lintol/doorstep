@@ -20,16 +20,16 @@ from ..reports.report import Report, combine_reports
 
 OPENFAAS_HOST = 'http://127.0.0.1:8084'
 FUNCTION_CONTAINER_PREFIX = '/home/user/.local/lib/python3.6/site-packages/'
-ALLOWED_PROCESSORS = {
-    'datatimes/dt-classify-category:1': ('ltl-datatimes-dt-classify-category', 'ltldoorstep_examples/dt_classify_category.py'),
-    'datatimes/dt-classify-location:1': ('ltl-datatimes-dt-classify-location', 'ltldoorstep_examples/dt_classify_location.py'),
-    'datatimes/dt-comprehender:1': ('doorstep', 'ltldoorstep_examples/dt_comprehender.py')
-}
 
 class OpenFaaSEngine(Engine):
     """Allow execution of workflows on a OpenFaaS cluster."""
 
+    def download(self):
+        return False
+
     def __init__(self, config=None):
+        self.allowed_functions = {}
+
         if config and 'engine' in config:
             config = config['engine']
 
@@ -43,6 +43,9 @@ class OpenFaaSEngine(Engine):
 
                 if 'credential' in config:
                     self.openfaas_cred = config['credential']
+
+                if 'allowed-functions' in config:
+                    self.allowed_functions = config['allowed-functions']
 
     @staticmethod
     def description():
@@ -102,7 +105,7 @@ class OpenFaaSEngine(Engine):
             'filename': filename,
             'content': filename
         }]
-        report = await self._run(filename, filename, processors, self.openfaas_host, self.openfaas_cred)
+        report = await self._run(filename, filename, processors, self.openfaas_host, self.openfaas_cred, self.allowed_functions)
         return report.compile(filename, metadata)
 
     async def monitor_pipeline(self, session):
@@ -112,7 +115,7 @@ class OpenFaaSEngine(Engine):
             # await session['completion'].acquire()
             data = await session['queue'].get()
             try:
-                result = await self._run(data['filename'], data['content'], session['processors'], self.openfaas_host, self.openfaas_cred)
+                result = await self._run(data['filename'], data['content'], session['processors'], self.openfaas_host, self.openfaas_cred, self.allowed_functions)
                 session['result'] = result
             except Exception as error:
                 __, __, exc_traceback = sys.exc_info()
@@ -138,18 +141,23 @@ class OpenFaaSEngine(Engine):
         return result
 
     @staticmethod
-    async def _run(filename, content, processors, openfaas_host, openfaas_cred):
+    async def _run(filename, content, processors, openfaas_host, openfaas_cred, allowed_functions={}):
         reports = []
         for processor in processors:
             metadata = processor['metadata']
-            if metadata.tag in ALLOWED_PROCESSORS:
+            if metadata.tag in allowed_functions:
                 tag = metadata.tag
-            elif processor['name'] in ALLOWED_PROCESSORS:
+            elif processor['name'] in allowed_functions:
                 tag = processor['name']
             else:
-                raise RuntimeError(_("Could not find {} or {} in allowed processors for OpenFaaS engine.").format(metadata.tag, processor['name']))
-            function, path = ALLOWED_PROCESSORS[tag]
+                error_msg = _("Could not find {} or {} in allowed processors for OpenFaaS engine. Available:\n\t").format(metadata.tag, processor['name'])
+                error_msg += "\n\t-".join(allowed_functions.keys())
+                error_msg += _("\nOther functions are not available. Update .ltldoorstep.yml to add more")
+                raise RuntimeError(error_msg)
+            function = allowed_functions[tag]
 
+            logging.error(metadata.to_dict())
+            rq = None
             try:
                 rq = requests.post(f'{openfaas_host}/function/{function}', json={
                     'filename': content,
@@ -158,19 +166,43 @@ class OpenFaaSEngine(Engine):
                 }, auth=HTTPBasicAuth('admin', openfaas_cred))
             except Exception as e:
                 logging.error(e)
+                if rq:
+                    status_code = rq.status_code
+                else:
+                    status_code = -1
 
-            logging.error(rq.text)
-            content = rq.json()
-            if 'error' in content and content['error']:
-                exception = json.loads(content['exception'])
                 raise LintolDoorstepException(
-                    exception['exception'],
-                    processor=exception['processor'],
-                    message=exception['message'],
-                    status_code=exception['code']
+                    e,
+                    processor=processor['name'],
+                    status_code=str(status_code)
                 )
 
-            report = Report.parse(rq.json())
+            content = rq.json()
+            if 'error' in content and content['error']:
+                logging.error('RQ')
+                logging.error(rq.content)
+                exception = json.loads(content['exception'])
+                if 'code' in exception:
+                    status_code = exception['code']
+                else:
+                    status_code = rq.status_code
+
+                raise LintolDoorstepException(
+                    exception['exception'],
+                    processor=processor['name'],
+                    message=exception['message'],
+                    status_code=str(status_code)
+                )
+
+            try:
+                report = Report.parse(content)
+            except Exception as e:
+                logging.error(rq.content)
+                raise LintolDoorstepException(
+                    e,
+                    processor=processor['name']
+                )
+
             reports.append(report)
 
         report = combine_reports(*reports)

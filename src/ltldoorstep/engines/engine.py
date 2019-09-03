@@ -1,6 +1,9 @@
 from contextlib import contextmanager
 
 class Engine:
+    def download(self):
+        return True
+
     def __init__(self, config=None):
         pass
 
