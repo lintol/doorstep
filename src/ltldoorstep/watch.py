@@ -30,12 +30,12 @@ async def search_gather(client, watch_changed_packages, settings, time_delay):
                 # brings in a limited number of results & cursor increases based on the results returned
                 retry = False
             except client.exception as exp:
-                print(exp)
+                logging.error(exp)
                 if retry > RETRIES:
                     raise exp
 
                 # catches connection errors only
-                print('Error retrieving from client API [revision-list], trying again...')
+                logging.error('Error retrieving from client API [revision-list], trying again...')
                 time.sleep(1)
                 retry += 1
             else:
@@ -49,9 +49,9 @@ async def search_gather(client, watch_changed_packages, settings, time_delay):
         for package in results:
             recent_revisions.append({'revision_id': package['id'], 'data': {'package': package}})
 
-        print(f"Total packages: {len(recent_revisions)}")
+        logging.info(f"Total packages: {len(recent_revisions)}")
 
-        print("Waiting - ", time_delay)
+        logging.info("Waiting - ", time_delay)
         time.sleep(time_delay)
 
         # calls another async fucntion using the vars set above
@@ -65,15 +65,15 @@ async def crawl_gather(client, watch_changed_packages, time_delay):
     try:
         packages = client.package_list()
     except client.exception as exp:
-        print(exp)
+        logging.info(exp)
         # catches connection errors only
-        print('Error retrieving from client API [revision-list], trying again...')
+        logging.info('Error retrieving from client API [revision-list], trying again...')
         time.sleep(1)
 
     list_checked_packages = []
 
     recent_revisions = [{'revision_id': package, 'data': {'package': {'id': package}}} for package in packages['results']]
-    print(f"Total packages: {len(recent_revisions)}")
+    logging.info(f"Total packages: {len(recent_revisions)}")
 
     # calls another async fucntion using the vars set above
     await watch_changed_packages(
@@ -91,10 +91,10 @@ async def watch_gather(client, watch_changed_packages, time_delay):
             recently_changed = client.recently_changed_packages_activity_list()
         except client.exception:
             # catches connection errors only
-            print('Error retrieving from client API [recently-changed-packages-activity-list], trying again...')
+            logging.warning('Error retrieving from client API [recently-changed-packages-activity-list], trying again...')
             time.sleep(1)
 
-        print("Waiting - ", time_delay)
+        logging.info("Waiting - ", time_delay)
         time.sleep(time_delay)
 
         desirable = []
@@ -144,14 +144,13 @@ class Monitor:
                 # to prevent any issues with retrieving a dataset & the code overlooking it during the next cycle
                 retrieved = False
                 while not retrieved:
-                    print(changed['data']['package']['id'])
                     try:
                         package_info = package_show(id=changed['data']['package']['id'])
                         retrieved = True
                     except self.client.exception as exp:
-                        print(exp)
+                        logging.error(exp)
                         # catches connection errors only
-                        print('Error retrieving from client API [package-show], trying again...')
+                        logging.error('Error retrieving from client API [package-show], trying again...')
                     time.sleep(1)
 
                 ini = DoorstepIni(context_package=package_info) # classes = studley case
@@ -161,7 +160,6 @@ class Monitor:
                 # when the code runs succesfully and the resource is retreived,
                 # it adds it to the list so it's not duplicated
                 list_checked_packages.append(changed_package_revision_id)  # list of names
-        print('----')
 
     async def get_resource(self, ini, rg_func):
         """
@@ -170,7 +168,7 @@ class Monitor:
         # uses the Monitor class, ini obj & request.get function
 
         # get the package_show data based on the name of the changed dataset
-        print("Getting resource from package")
+        logging.info("Getting resource from package")
         for resource in ini.package['resources']:
             # loops through resources in the package
             source = self.client.get_identifier()
