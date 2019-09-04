@@ -85,8 +85,9 @@ def process(ctx, filename, workflow, metadata):
 @click.option('--publish/--no-publish', default=False)
 @click.option('--dummy-ckan/--no-dummy-ckan', default=False)
 @click.option('--force-update/--no-force-update', default=False)
+@click.option('--time-delay', default=5, help='How long between repeated calls')
 @click.pass_context
-def crawl(ctx, workflow, url, search, watch, watch_refresh_delay, publish, dummy_ckan, force_update):
+def crawl(ctx, workflow, url, search, watch, watch_refresh_delay, publish, dummy_ckan, force_update, time_delay):
     """
     Crawl function gets the URL of all packages in the CKAN instance.
     Adding the 'watch' option only gets it to look for datasets added/altered since crawl started to run.
@@ -109,7 +110,7 @@ def crawl(ctx, workflow, url, search, watch, watch_refresh_delay, publish, dummy
         if watch:
             raise RuntimeError("Can only use watch or search")
         search_settings = json.loads(search)
-        gather_fn = lambda c, w: search_gather(c, w, search_settings)
+        gather_fn = lambda c, w, td: search_gather(c, w, search_settings, td)
 
     if dummy_ckan:
         client = DummyDataStore()
@@ -126,7 +127,8 @@ def crawl(ctx, workflow, url, search, watch, watch_refresh_delay, publish, dummy
                 client,
                 printer,
                 gather_fn,
-                force_update
+                force_update,
+                time_delay
             )
         except Exception as e:
             # stops the code regardless of the exception thrown

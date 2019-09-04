@@ -1,4 +1,5 @@
 import requests
+import logging
 import asyncio
 import json
 import ltldoorstep.printer as printer
@@ -12,7 +13,7 @@ from ltldoorstep.crawler import announce_resource
 TIME_DELAY = 5
 RETRIES = 10
 
-async def search_gather(client, watch_changed_packages, settings):
+async def search_gather(client, watch_changed_packages, settings, time_delay):
     cursor = 0
     complete = None
     while not complete:
@@ -50,8 +51,8 @@ async def search_gather(client, watch_changed_packages, settings):
 
         print(f"Total packages: {len(recent_revisions)}")
 
-        print("Waiting - ", TIME_DELAY)
-        time.sleep(TIME_DELAY)
+        print("Waiting - ", time_delay)
+        time.sleep(time_delay)
 
         # calls another async fucntion using the vars set above
         await watch_changed_packages(
@@ -60,7 +61,7 @@ async def search_gather(client, watch_changed_packages, settings):
             client.package_show # data sent to get_resources
         )
 
-async def crawl_gather(client, watch_changed_packages):
+async def crawl_gather(client, watch_changed_packages, time_delay):
     try:
         packages = client.package_list()
     except client.exception as exp:
@@ -81,7 +82,7 @@ async def crawl_gather(client, watch_changed_packages):
         client.package_show # data sent to get_resources
     )
 
-async def watch_gather(client, watch_changed_packages):
+async def watch_gather(client, watch_changed_packages, time_delay):
     # runs code from old commit that uses the client to get the list of changed packages
     list_checked_packages = []
 
@@ -93,8 +94,8 @@ async def watch_gather(client, watch_changed_packages):
             print('Error retrieving from client API [recently-changed-packages-activity-list], trying again...')
             time.sleep(1)
 
-        print("Waiting - ", TIME_DELAY)
-        time.sleep(TIME_DELAY)
+        print("Waiting - ", time_delay)
+        time.sleep(time_delay)
 
         desirable = []
         for recent in recently_changed:
@@ -114,16 +115,20 @@ class Monitor:
     """ Monitor class acts as the interface for WAMP
     handles functionality that checks for new packages & retrives resources from the client
     """
-    def __init__(self, cmpt, client, printer, gather_fn, announce_fn, update=False):
+    def __init__(self, cmpt, client, printer, gather_fn, announce_fn, update=False, time_delay=None):
         self.cmpt = cmpt # create the component
         self.client = client # creates the client from data_store. could be either dummy or ckan obj
         self.printer = printer
         self.gather_fn = gather_fn
         self.announce_fn = announce_fn
         self.update = update
+        if time_delay is None:
+            self.time_delay = TIME_DELAY
+        else:
+            self.time_delay = time_delay
 
     async def run(self):
-        await self.gather_fn(self.client, self.watch_changed_packages)
+        await self.gather_fn(self.client, self.watch_changed_packages, self.time_delay)
 
     async def watch_changed_packages(self, recently_changed, list_checked_packages, package_show):
         """
@@ -170,14 +175,14 @@ class Monitor:
             # loops through resources in the package
             source = self.client.get_identifier()
             # finds where the resource is coming from, ie ckan or dummy
-            print(f'Announcing resource: {resource["url"]} from {source}')
+            logging.error(f'Announcing resource: {resource["url"]} from {source}')
             # calls async function that doesn't create a report, but gets the data???
             await self.announce_fn(self.cmpt, resource, ini, source, self.update)
 
 
-async def monitor_for_changes(cmpt, client, printer, gather_fn, update=False):
+async def monitor_for_changes(cmpt, client, printer, gather_fn, update=False, time_delay=None):
     """
     creates Monitor object
     """
-    monitor = Monitor(cmpt, client, printer, gather_fn, announce_resource, update=update)
+    monitor = Monitor(cmpt, client, printer, gather_fn, announce_resource, update=update, time_delay=time_delay)
     await monitor.run()
