@@ -59,7 +59,7 @@ async def search_gather(client, watch_changed_packages, settings, time_delay):
         )
 
         if not complete:
-            logging.info("Waiting - ", time_delay)
+            logging.info("Waiting - %d", time_delay)
             time.sleep(time_delay)
 
 async def crawl_gather(client, watch_changed_packages, time_delay):
@@ -95,7 +95,7 @@ async def watch_gather(client, watch_changed_packages, time_delay):
             logging.warning('Error retrieving from client API [recently-changed-packages-activity-list], trying again...')
             time.sleep(1)
 
-        logging.info("Waiting - ", time_delay)
+        logging.info("Waiting - %d", time_delay)
         time.sleep(time_delay)
 
         desirable = []
