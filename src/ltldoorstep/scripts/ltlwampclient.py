@@ -27,6 +27,7 @@ from ltldoorstep.watch import monitor_for_changes, watch_gather, crawl_gather, s
 @click.pass_context
 def cli(ctx, debug, bucket, router_url):
     prnt = printer.TermColorPrinter(debug)
+    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
     ctx.obj = {
         'DEBUG': debug,
         'printer': prnt,

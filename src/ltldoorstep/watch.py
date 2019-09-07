@@ -51,15 +51,16 @@ async def search_gather(client, watch_changed_packages, settings, time_delay):
 
         logging.info(f"Total packages: {len(recent_revisions)}")
 
-        logging.info("Waiting - ", time_delay)
-        time.sleep(time_delay)
-
         # calls another async fucntion using the vars set above
         await watch_changed_packages(
             recent_revisions, # list of dicts returned from client
             list_checked_packages, # list that is added to as program runs
             client.package_show # data sent to get_resources
         )
+
+        if not complete:
+            logging.info("Waiting - ", time_delay)
+            time.sleep(time_delay)
 
 async def crawl_gather(client, watch_changed_packages, time_delay):
     try:
@@ -143,6 +144,7 @@ class Monitor:
                 # var set to false so the while loop runs until package_show() works
                 # to prevent any issues with retrieving a dataset & the code overlooking it during the next cycle
                 retrieved = False
+
                 while not retrieved:
                     try:
                         package_info = package_show(id=changed['data']['package']['id'])
@@ -152,6 +154,8 @@ class Monitor:
                         # catches connection errors only
                         logging.error('Error retrieving from client API [package-show], trying again...')
                     time.sleep(1)
+
+                logging.info("Package - %s", package_info['name'])
 
                 ini = DoorstepIni(context_package=package_info) # classes = studley case
                 # calls async function from Monitor class to get the dataset's resource using the package info
@@ -173,7 +177,7 @@ class Monitor:
             # loops through resources in the package
             source = self.client.get_identifier()
             # finds where the resource is coming from, ie ckan or dummy
-            logging.error(f'Announcing resource: {resource["url"]} from {source}')
+            logging.info(f'Announcing resource: {resource["url"]} from {source}')
             # calls async function that doesn't create a report, but gets the data???
             await self.announce_fn(self.cmpt, resource, ini, source, self.update)
 

@@ -36,7 +36,6 @@ async def do_crawl(component, url, workflow, printer, publish, update=False):
             if resource['format'] in ALLOWED_FORMATS:
                 if workflow:
                     # if workflow is initisialised
-                    logging.error(resource['url'])
                     # creates response oject from the url column
                     r = requests.get(resource['url'])
                     with make_file_manager(content={'data.csv': r.text}) as file_manager:
@@ -95,11 +94,9 @@ async def execute_workflow(component, filename, workflow, ini):
 
     component._server, component._session = await component.call('com.ltldoorstep.engage')
 
-    print('C', ini.to_dict()['definitions'])
     await component.call_server('processor.post', {workflow: module}, ini.to_dict())
     content = "file://{}".format(os.path.abspath(filename))
 
-    logging.error("Sending: {}".format(content))
     await component.call_server('data.post', basefilename, content, True)
 
     try:
@@ -109,7 +106,6 @@ async def execute_workflow(component, filename, workflow, ini):
         result = None
 
     result = json.loads(result)
-    logging.error(result)
     return result
 
     #temp commented out
