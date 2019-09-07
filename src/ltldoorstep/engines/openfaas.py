@@ -156,7 +156,6 @@ class OpenFaaSEngine(Engine):
                 raise RuntimeError(error_msg)
             function = allowed_functions[tag]
 
-            logging.error(metadata.to_dict())
             rq = None
             try:
                 rq = requests.post(f'{openfaas_host}/function/{function}', json={
@@ -179,8 +178,6 @@ class OpenFaaSEngine(Engine):
 
             content = rq.json()
             if 'error' in content and content['error']:
-                logging.error('RQ')
-                logging.error(rq.content)
                 exception = json.loads(content['exception'])
                 if 'code' in exception:
                     status_code = exception['code']
