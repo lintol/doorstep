@@ -120,6 +120,26 @@ class Report(Serializable):
 
         return cls.preset
 
+    def has_processor(self, processor, include_subprocessors):
+        if include_subprocessors:
+            group = [self.processor] + self.get_subprocessors()
+        else:
+            group = [self.processor]
+
+        if ':' in processor:
+            comp = lambda p: processor == p
+        else:
+            comp = lambda p: p.split(':')[0] == processor
+
+        return any([comp(p) for p in group])
+
+    def get_subprocessors(self):
+        subprocessors = set()
+        for level in self.issues.values():
+            for issue in level:
+                subprocessors.add(issue.processor)
+        return list(subprocessors)
+
     def __serialize__(self):
         return self.compile()
 

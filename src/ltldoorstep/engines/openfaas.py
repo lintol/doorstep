@@ -203,6 +203,7 @@ class OpenFaaSEngine(Engine):
             reports.append(report)
 
         report = combine_reports(*reports)
+        report.filename = filename
 
         return report
 
