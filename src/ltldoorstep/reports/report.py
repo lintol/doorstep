@@ -181,7 +181,11 @@ class Report(Serializable):
     def get_issues(self, level=None):
         if level:
             return self.issues[level]
-        return sum(list(self.issues.values()))
+        return sum(list(self.issues.values()), [])
+
+    def get_issues_by_code(self, code, level=None):
+        issues = self.get_issues(level)
+        return [issue for issue in issues if issue.code == code]
 
     def append_issue(self, issue, prepend=False):
         if prepend:
