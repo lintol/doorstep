@@ -74,7 +74,6 @@ class DoorstepContext:
 
         if 'lang' in dct:
             kwargs['lang'] = dct['lang']
-        logging.info(dct)
 
         return cls(**kwargs)
 
