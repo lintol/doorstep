@@ -1,4 +1,5 @@
 from autobahn.asyncio.wamp import ApplicationRunner, ApplicationSession
+from autobahn.wamp.types import PublishOptions
 import sys
 import traceback
 import time
@@ -172,7 +173,8 @@ class DoorstepComponent(ApplicationSession):
                 return self.publish(
                     'com.ltldoorstep.event_result',
                     self._id,
-                    session['name']
+                    session['name'],
+                    options=PublishOptions(acknowledge=True)
                 )
 
             monitor_output.add_done_callback(output_results)
