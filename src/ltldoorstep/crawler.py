@@ -1,6 +1,7 @@
 import uuid
 import json
 from autobahn.wamp.exception import ApplicationError
+from autobahn.wamp.types import PublishOptions
 import logging
 import requests
 from ltldoorstep.metadata import DoorstepContext
@@ -62,7 +63,7 @@ async def announce_resource(component, resource, ini, source, update=False):
     if update:
         logging.error("Using force-update")
 
-    component.publish('com.ltldoorstep.event_found_resource', resource['id'], resource, ini.to_dict(), source, update)
+    component.publish('com.ltldoorstep.event_found_resource', resource['id'], resource, ini.to_dict(), source, update, options=PublishOptions(acknowledge=True))
 
 
 async def execute_workflow(component, filename, workflow, ini):
