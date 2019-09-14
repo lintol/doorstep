@@ -20,13 +20,16 @@ class WampClientComponent(ApplicationSession):
     _server = None
     _session = None
 
-    def __init__(self, on_join, *args, **kwargs):
+    def __init__(self, on_join, on_join_fut, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.on_join = on_join
+        self.on_join_fut = on_join_fut
 
     async def onJoin(self, details):
         logging.error("Joined")
-        return await self.on_join(self)
+        result = await self.on_join(self)
+        self.on_join_fut.set_result(result)
+        return result
 
     async def call_server(self, endpoint, *args, **kwargs):
         """Generate the correct endpoint for the known server."""
@@ -51,13 +54,19 @@ async def launch_wamp_real(on_join, router_url):
     """
     launches the wamp client if the workflow is successful
     """
+
     runner = ApplicationRunner(url=router_url, realm='realm1')
+    on_join_fut = asyncio.Future()
     transport, protocol = await runner.run(lambda *args, **kwargs: WampClientComponent(
         on_join,
+        on_join_fut,
         *args,
         **kwargs
     ), start_loop=False)
-    return runner
+
+    await on_join_fut
+
+    return on_join_fut.result()
 
 
 async def announce_wamp(on_join, router_url):
@@ -77,7 +86,7 @@ async def launch_wamp(on_join, router_url):
 
     try:
         # launches the wamp client
-        runner = await launch_wamp_real(on_join, router_url)
+        result = await launch_wamp_real(on_join, router_url)
     except Exception as e:
         raise e
         # if it fails it throws the error up the stack
@@ -85,5 +94,5 @@ async def launch_wamp(on_join, router_url):
             # if it fails it tries to run it again
             input(
                 "Could not find router, pausing until you start one... (press Return to continue)")
-            runner = await launch_wamp_real(on_join, router_url)
-    return runner
+            result = await launch_wamp_real(on_join, router_url)
+    return result

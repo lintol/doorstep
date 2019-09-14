@@ -20,6 +20,8 @@ from ltldoorstep.crawler import execute_workflow, do_crawl
 from ltldoorstep.wamp_client import launch_wamp
 from ltldoorstep.watch import monitor_for_changes, watch_gather, crawl_gather, search_gather
 
+LOGGING_FORMAT = '%(asctime)-15s %(message)s'
+
 @click.group()
 @click.option('--debug/--no-debug', default=False)
 @click.option('-b', '--bucket', default=None)
@@ -27,7 +29,7 @@ from ltldoorstep.watch import monitor_for_changes, watch_gather, crawl_gather, s
 @click.pass_context
 def cli(ctx, debug, bucket, router_url):
     prnt = printer.TermColorPrinter(debug)
-    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
+    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO, format=LOGGING_FORMAT)
     ctx.obj = {
         'DEBUG': debug,
         'printer': prnt,
@@ -111,20 +113,33 @@ def crawl(ctx, workflow, url, search, watch, watch_refresh_delay, publish, dummy
         if watch:
             raise RuntimeError("Can only use watch or search")
         search_settings = json.loads(search)
-        gather_fn = lambda c, w, td: search_gather(c, w, search_settings, td)
+        gather_fn = lambda c, w, td, cw: search_gather(c, w, search_settings, td, cw)
 
     if dummy_ckan:
         client = DummyDataStore()
     else:
         client = CkanDataStore(url)
 
-    # launch_wamp connects to crossbar (which acts as the wamp router) to communicate with the ckan instance
-    # runs the component, which is what runs the code from watch.py's Monitor class??
-    async def _exec(cmpt):
+    async def _run():
+        async def cmpt_wrap(fn, *args):
+            # launch_wamp connects to crossbar (which acts as the wamp router) to communicate with the ckan instance
+            # runs the component, which is what runs the code from watch.py's Monitor class??
+            async def _exec(cmpt):
+                try:
+                    result = await fn(cmpt, *args)
+                    # calls async function to create monitor object
+                except Exception as e:
+                    # stops the code regardless of the exception thrown
+                    await cmpt.leave(u'wamp.close.complete', 'finished')
+                    raise e # throws to top of stack
+
+                return result
+
+            return await launch_wamp(_exec, router_url)
+
         try:
-            # calls async function to create monitor object
             await monitor_for_changes(
-                cmpt,
+                cmpt_wrap,
                 client,
                 printer,
                 gather_fn,
@@ -132,16 +147,11 @@ def crawl(ctx, workflow, url, search, watch, watch_refresh_delay, publish, dummy
                 time_delay
             )
         except Exception as e:
-            # stops the code regardless of the exception thrown
             loop = asyncio.get_event_loop()
             loop.stop()
-            raise e # throws to top of stack
-        await cmpt.leave(u'wamp.close.complete', 'finished')
-        loop = asyncio.get_event_loop()
-        loop.stop()
 
     # runs the wamp server forever more or less
-    loop.run_until_complete(launch_wamp(_exec, router_url))
+    loop.run_until_complete(_run())
     loop.run_forever()
 
 @cli.command()
@@ -186,7 +196,6 @@ async def gather_resources(client, package, workflow, router_url, metadata, prin
 
     resources = client.resource_search(query='name:' + package)
     # searches based on name input
-    print(resources)
     if 'results' in resources:
         # if resources have column called 'results'
         for resource in resources['results']:
@@ -198,7 +207,6 @@ async def gather_resources(client, package, workflow, router_url, metadata, prin
                 filename = file_manager.get('data.csv')
                 result = launch_wamp(lambda cmpt: _exec(cmpt, filename), router_url)
                 # launches the wamp server, creates a component using _exec()
-                print(result)
                 if result:
                     printer.build_report(result)
     printer.print_output()
