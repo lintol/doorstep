@@ -12,11 +12,13 @@ from ltldoorstep.crawler import announce_resource
 TIME_DELAY = 5
 RETRIES = 10
 
-async def search_gather(client, watch_changed_packages, settings, time_delay, cmpt_wrap):
-    cursor = 0
+async def search_gather(client, watch_changed_packages, settings, time_delay, skip, cmpt_wrap):
+    cursor = skip
     complete = None
     while not complete:
-        async def iteration(cmpt, cursor):
+        logging.info("Gathering from %d", cursor)
+
+        async def iteration(cmpt, cursor, complete):
             settings['start'] = cursor
 
             retry = 1
@@ -59,15 +61,15 @@ async def search_gather(client, watch_changed_packages, settings, time_delay, cm
                 cmpt
             )
 
-            return cursor
+            return cursor, complete
 
-        cursor = await cmpt_wrap(iteration, cursor)
+        cursor, complete = await cmpt_wrap(iteration, cursor, complete)
 
         if not complete:
             logging.info("Waiting - %d", time_delay)
             time.sleep(time_delay)
 
-async def crawl_gather(client, watch_changed_packages, time_delay, cmpt_wrap):
+async def crawl_gather(client, watch_changed_packages, time_delay, skip, cmpt_wrap):
     try:
         packages = client.package_list()
     except client.exception as exp:
@@ -91,7 +93,7 @@ async def crawl_gather(client, watch_changed_packages, time_delay, cmpt_wrap):
         )
     await cmpt_wrap(iteration)
 
-async def watch_gather(client, watch_changed_packages, time_delay, cmpt_wrap):
+async def watch_gather(client, watch_changed_packages, time_delay, skip, cmpt_wrap):
     # runs code from old commit that uses the client to get the list of changed packages
     list_checked_packages = []
 
@@ -127,20 +129,22 @@ class Monitor:
     """ Monitor class acts as the interface for WAMP
     handles functionality that checks for new packages & retrives resources from the client
     """
-    def __init__(self, cmpt, client, printer, gather_fn, announce_fn, update=False, time_delay=None):
+    def __init__(self, cmpt, client, printer, gather_fn, announce_fn, update=False, time_delay=None, skip=0):
         self.cmpt = cmpt # create the component
         self.client = client # creates the client from data_store. could be either dummy or ckan obj
         self.printer = printer
         self.gather_fn = gather_fn
         self.announce_fn = announce_fn
         self.update = update
+        self.skip = skip
         if time_delay is None:
             self.time_delay = TIME_DELAY
         else:
             self.time_delay = time_delay
 
     async def run(self):
-        await self.gather_fn(self.client, self.watch_changed_packages, self.time_delay, self.cmpt)
+        await self.gather_fn(self.client, self.watch_changed_packages, self.time_delay, self.skip, self.cmpt)
+        logging.info("Completed gathering")
 
     async def watch_changed_packages(self, recently_changed, list_checked_packages, package_show, cmpt):
         """
@@ -193,9 +197,9 @@ class Monitor:
             await self.announce_fn(cmpt, resource, ini, source, self.update)
 
 
-async def monitor_for_changes(cmpt, client, printer, gather_fn, update=False, time_delay=None):
+async def monitor_for_changes(cmpt, client, printer, gather_fn, update=False, time_delay=None, skip=0):
     """
     creates Monitor object
     """
-    monitor = Monitor(cmpt, client, printer, gather_fn, announce_resource, update=update, time_delay=time_delay)
+    monitor = Monitor(cmpt, client, printer, gather_fn, announce_resource, update=update, time_delay=time_delay, skip=skip)
     await monitor.run()
