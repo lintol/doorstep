@@ -168,7 +168,8 @@ class Monitor:
                         logging.error(exp)
                         # catches connection errors only
                         logging.error('Error retrieving from client API [package-show], trying again...')
-                    time.sleep(1)
+                        time.sleep(0.7)
+                    time.sleep(0.3)
 
                 logging.info("Package - %s", package_info['name'])
 
