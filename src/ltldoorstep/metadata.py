@@ -2,7 +2,7 @@ import json
 import logging
 
 class DoorstepContext:
-    def __init__(self, lang=None, tag=None, module=None, docker_image=None, docker_revision=None, context_package=None, settings={}, configuration={}, supplementary=None, context_format=None):
+    def __init__(self, lang=None, tag=None, module=None, docker_image=None, docker_revision=None, context_package=None, settings={}, configuration={}, supplementary=None, context_format=None, context_resource=None):
         self.lang = lang
         self.docker = {
             'image': docker_image,
@@ -11,6 +11,7 @@ class DoorstepContext:
         self.tag = tag
         self.module = module
         self.package = context_package
+        self.resource = context_resource
         self.settings = settings
         self.configuration = configuration
         self.supplementary = supplementary
@@ -22,12 +23,25 @@ class DoorstepContext:
     def has_package(self):
         return bool(self.package)
 
+    def has_resource(self):
+        return bool(self.resource)
+
     def get_setting(self, setting, default=None):
         if setting in self.configuration:
             return self.configuration[setting]
         if setting in self.settings:
             return self.settings[setting]
         return default
+
+    @property
+    def resource(self):
+        resource = self._context_resource
+
+        if type(resource) is str:
+            resource = json.loads(resource)
+            self._context_resource = resource
+
+        return resource
 
     @property
     def package(self):
@@ -42,6 +56,10 @@ class DoorstepContext:
     @package.setter
     def package(self, package):
         self._context_package = package
+
+    @resource.setter
+    def resource(self, resource):
+        self._context_resource = resource
 
     @classmethod
     def from_dict(cls, dct):
@@ -82,6 +100,10 @@ class DoorstepContext:
         if type(package) is not str:
             package = json.dumps(package)
 
+        resource = self._context_resource
+        if type(resource) is not str:
+            resource = json.dumps(resource)
+
         return {
             'definition': {
                 'docker': dict(self.docker)
@@ -89,6 +111,7 @@ class DoorstepContext:
             'lang': self.lang,
             'context': {
                 'package': package,
+                'resource': resource,
                 'format': self.context_format
             },
             'settings': dict(self.settings),
