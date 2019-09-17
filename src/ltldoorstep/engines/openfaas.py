@@ -191,7 +191,6 @@ class OpenFaaSEngine(Engine):
                     status_code=str(status_code)
                 )
 
-            logging.error(rq.content)
             try:
                 report = Report.parse(content)
             except Exception as e:
