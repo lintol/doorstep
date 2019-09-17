@@ -8,6 +8,8 @@ from ltldoorstep.metadata import DoorstepContext
 import asyncio
 import logging
 
+LOGGING_FORMAT = '%(asctime)-15s %(message)s'
+
 # TODO: possibly replace with e.g. dynaconf as needs evolve
 def get_engine(engine, config):
     if ':' in engine:
@@ -38,7 +40,7 @@ def cli(ctx, debug, bucket, output, output_file):
 
     config = load_config()
 
-    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
+    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO, format=LOGGING_FORMAT)
     logger = logging.getLogger(__name__)
 
     ctx.obj = {

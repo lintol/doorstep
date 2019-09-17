@@ -78,6 +78,8 @@ class DoorstepContext:
         if 'context' in dct:
             if 'package' in dct['context'] and dct['context']['package']:
                 kwargs['context_package'] = dct['context']['package']
+            if 'resource' in dct['context'] and dct['context']['resource']:
+                kwargs['context_resource'] = dct['context']['resource']
             if 'format' in dct['context'] and dct['context']['format']:
                 kwargs['context_format'] = dct['context']['format']
 
