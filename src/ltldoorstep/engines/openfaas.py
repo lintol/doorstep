@@ -176,7 +176,7 @@ class OpenFaaSEngine(Engine):
                     status_code=str(status_code)
                 )
 
-            content = rq.json()
+            content = json.loads(rq.content)
             if 'error' in content and content['error']:
                 exception = json.loads(content['exception'])
                 if 'code' in exception:
