@@ -160,7 +160,8 @@ class Monitor:
                 # to prevent any issues with retrieving a dataset & the code overlooking it during the next cycle
                 retrieved = False
 
-                while not retrieved:
+                retry = 1
+                while not retrieved and retry < RETRIES:
                     try:
                         package_info = package_show(id=changed['data']['package']['id'])
                         retrieved = True
@@ -169,7 +170,12 @@ class Monitor:
                         # catches connection errors only
                         logging.error('Error retrieving from client API [package-show], trying again...')
                         time.sleep(0.7)
+                        retry += 1
+
                     time.sleep(0.3)
+                if not retrieved:
+                    logging.error("Package - %s: NOT RETRIEVED (%s)", package_info['name'], changed['data']['package']['id'])
+                    continue
 
                 logging.info("Package - %s", package_info['name'])
 
