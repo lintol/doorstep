@@ -176,7 +176,16 @@ class OpenFaaSEngine(Engine):
                     status_code=str(status_code)
                 )
 
-            content = json.loads(rq.content)
+            try:
+                content = json.loads(rq.content)
+            except Exception as e:
+                logging.error(rq.content)
+                raise LintolDoorstepException(
+                    e,
+                    message=rq.content,
+                    processor=processor['name']
+                )
+
             if 'error' in content and content['error']:
                 exception = json.loads(content['exception'])
                 if 'code' in exception:
