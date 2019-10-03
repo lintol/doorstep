@@ -199,45 +199,49 @@ class Report(Serializable):
 
     @classmethod
     def parse(cls, dictionary):
-        issues = {}
+        issues = {
+            logging.INFO: [],
+            logging.WARNING: [],
+            logging.ERROR: []
+        }
         # table = {}
-        table = dictionary['tables'][0]
-        # print("*****type check**** %s" % type(dictionary))
+        for table in dictionary['tables']:
+            # print("*****type check**** %s" % type(dictionary))
 
-        issues[logging.ERROR] = [
-            ReportIssue.parse(logging.ERROR, issue)
-            for issue in
-                table['errors']
-        ]
+            issues[logging.ERROR] += [
+                ReportIssue.parse(logging.ERROR, issue)
+                for issue in
+                    table['errors']
+            ]
 
-        issues[logging.WARNING] = [
-            ReportIssue.parse(logging.WARNING, issue)
-            for issue in
-                table['warnings']
-        ]
+            issues[logging.WARNING] += [
+                ReportIssue.parse(logging.WARNING, issue)
+                for issue in
+                    table['warnings']
+            ]
 
-        issues[logging.INFO] = [
-            ReportIssue.parse(logging.INFO, issue)
-            for issue in
-                table['informations']
-        ]
+            issues[logging.INFO] += [
+                ReportIssue.parse(logging.INFO, issue)
+                for issue in
+                    table['informations']
+            ]
 
-        filename = dictionary['filename']
+            filename = dictionary['filename']
 
-        if 'metadata' in dictionary:
-            if isinstance(dictionary['metadata'], DoorstepContext):
-                metadata = dictionary['metadata']
+            if 'metadata' in dictionary:
+                if isinstance(dictionary['metadata'], DoorstepContext):
+                    metadata = dictionary['metadata']
+                else:
+                    metadata = DoorstepContext.from_dict(dictionary['metadata'])
             else:
-                metadata = DoorstepContext.from_dict(dictionary['metadata'])
-        else:
-            metadata = DoorstepContext(context_format=table['format'])
+                metadata = DoorstepContext(context_format=table['format'])
+
+            row_count = table['row-count'] if 'time' in table else None
+            time = table['time'] if 'time' in table else None
+            encoding = table['encoding'] if 'encoding' in table else None
+            headers = table['headers'] if 'headers' in table else None
 
         supplementary = dictionary['supplementary']
-        row_count = table['row-count'] if 'time' in table else None
-        time = table['time'] if 'time' in table else None
-        encoding = table['encoding'] if 'encoding' in table else None
-        headers = table['headers'] if 'headers' in table else None
-
         cls = get_report_class_from_preset(dictionary['preset'])
 
         return cls(
@@ -263,8 +267,11 @@ class Report(Serializable):
             if self.properties[prop] is None:
                 self.properties[prop] = additional.properties[prop]
 
+    @staticmethod
+    def table_string_from_issue(issue):
+        return ''
+
     def compile(self, filename=None, metadata=None):
-        report = {k: [item.render() for item in v] for k, v in self.issues.items()}
         supplementary = self.supplementary
 
         if filename is None:
@@ -283,14 +290,20 @@ class Report(Serializable):
             if frmt and frmt[0] == '.':
                 frmt = frmt[1:]
 
-        valid = not bool(report[logging.ERROR])
+        table_strings = {self.table_string_from_issue(issue) for issues in self.issues.values() for issue in issues}
+        table_strings = sorted(list(table_strings))
+        issues_by_table = {ts: {logging.ERROR: [], logging.WARNING: [], logging.INFO: []} for ts in table_strings}
+        for level, issue_list in self.issues.items():
+            for issue in issue_list:
+                issues_by_table[self.table_string_from_issue(issue)][level].append(issue)
 
-        results = {
-            'supplementary': supplementary,
-            'error-count': sum([len(r) for r in report.values()]),
-            'valid': valid,
-            'filename': filename,
-            'tables': [
+        tables = []
+        for table_string in table_strings:
+            table = issues_by_table[table_string]
+            report = {k: [item.render() for item in v] for k, v in table.items()}
+            valid = not bool(report[logging.ERROR])
+
+            tables.append(
                 {
                     'format': frmt,
                     'errors': report[logging.ERROR],
@@ -298,7 +311,7 @@ class Report(Serializable):
                     'informations': report[logging.INFO],
                     'row-count': self.properties['row-count'],
                     'headers': self.properties['headers'],
-                    'source': filename,
+                    'source': f'{filename}{table_string}',
                     'time': self.properties['time'],
                     'valid': valid,
                     'scheme': 'file',
@@ -306,7 +319,14 @@ class Report(Serializable):
                     'schema': None,
                     'error-count': sum([len(r) for r in report.values()])
                 }
-            ],
+            )
+
+        results = {
+            'supplementary': supplementary,
+            'error-count': sum([len(r) for r in report.values()]),
+            'valid': valid,
+            'tables': tables,
+            'filename': filename,
             'preset': self.get_preset(),
             'warnings': [],
             'table-count': 1,
@@ -344,6 +364,7 @@ class Report(Serializable):
 
         self.append_issue(issue, prepend=at_top)
 
+# TODO: fix for multiple tables
 def properties_from_report(report):
     table = report['tables'][0]
     return {
