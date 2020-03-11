@@ -60,7 +60,7 @@ def status(ctx):
     async def _exec(cmpt):
         try:
             cmpt.subscribe(status_observe, 'com.ltldoorstep.status')
-            cmpt.publish('com.ltldoorstep.status_retrieve')
+            cmpt.publish('com.ltldoorstep.status-retrieve')
         except Exception as e:
             # if there is any exception thrown, it stops everything
             loop = asyncio.get_event_loop()

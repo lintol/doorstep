@@ -202,7 +202,7 @@ class DoorstepComponent(ApplicationSession):
                 options=PublishOptions(acknowledge=True)
             )
 
-        self.subscribe(status_retrieve, 'com.ltldoorstep.status_retrieve')
+        self.subscribe(status_retrieve, 'com.ltldoorstep.status-retrieve')
 
     def onDisconnect(self):
         logging.error(_("Disconnected from WAMP router"))
