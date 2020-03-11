@@ -192,6 +192,18 @@ class DoorstepComponent(ApplicationSession):
         await self.wrap_register('data.post', self._resource_data.post)
         await self.wrap_register('report.get', self._resource_report.get)
 
+        async def status_retrieve():
+            results = await self._engine.check_processor_statuses()
+
+            return self.publish(
+                'com.ltldoorstep.status',
+                self._id,
+                results,
+                options=PublishOptions(acknowledge=True)
+            )
+
+        self.subscribe(status_retrieve, 'com.ltldoorstep.status_retrieve')
+
     def onDisconnect(self):
         logging.error(_("Disconnected from WAMP router"))
         asyncio.get_event_loop().stop()

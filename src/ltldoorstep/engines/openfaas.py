@@ -140,6 +140,50 @@ class OpenFaaSEngine(Engine):
 
         return result
 
+    async def check_processor_statuses(self):
+        content = await self._get_functions(self.openfaas_host, self.openfaas_cred, self.allowed_functions)
+        return content
+
+    @staticmethod
+    async def _get_functions(openfaas_host, openfaas_cred, allowed_functions={}):
+        rq = None
+        try:
+            rq = requests.get(f'{openfaas_host}/function/ltl-openfaas-status', json={
+            }, auth=HTTPBasicAuth('admin', openfaas_cred))
+        except Exception as e:
+            logging.error(e)
+            if rq:
+                status_code = rq.status_code
+            else:
+                status_code = -1
+
+            raise LintolDoorstepException(
+                e,
+                status_code=str(status_code)
+            )
+
+        try:
+            content = json.loads(rq.content)
+        except Exception as e:
+            logging.error(rq.content)
+            raise LintolDoorstepException(
+                e,
+                message=rq.content
+            )
+
+        rev_functions = {
+            v: k
+            for k, v in allowed_functions.items()
+        }
+
+        content = {
+            rev_functions[cntt['name']]: cntt
+            for cntt in content
+            if cntt['name'] in rev_functions
+        }
+
+        return content
+
     @staticmethod
     async def _run(filename, content, processors, openfaas_host, openfaas_cred, allowed_functions={}):
         reports = []

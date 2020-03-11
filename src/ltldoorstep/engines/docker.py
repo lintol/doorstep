@@ -11,8 +11,6 @@ import logging
 import asyncio
 from urllib.parse import urlparse
 from contextlib import contextmanager
-from dask.distributed import Client
-from .dask_common import execute
 from ..reports.report import Report, get_report_class_from_preset, combine_reports
 from ..file import make_file_manager
 import docker

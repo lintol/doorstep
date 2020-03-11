@@ -50,6 +50,31 @@ def status(ctx):
     else:
         click.echo(_('Debug is off'))
 
+    printer = ctx.obj['printer']
+    bucket = ctx.obj['bucket']
+    router_url = ctx.obj['router_url']
+
+    async def status_observe(server_id, status):
+        print(server_id, status)
+
+    async def _exec(cmpt):
+        try:
+            cmpt.subscribe(status_observe, 'com.ltldoorstep.status')
+            cmpt.publish('com.ltldoorstep.status_retrieve')
+        except Exception as e:
+            # if there is any exception thrown, it stops everything
+            loop = asyncio.get_event_loop()
+            # stops any async events running
+            loop.stop()
+            # throws exception to the top of the stack
+            raise e
+
+    loop = asyncio.get_event_loop() # finds whatever async stuff is happening
+    loop.run_until_complete(launch_wamp(_exec, router_url)) # runs the wamp server
+    loop.run_forever() # forever
+
+    print(printer.print_output())
+
 
 @cli.command()
 @click.option('-m', '--metadata', default=None)

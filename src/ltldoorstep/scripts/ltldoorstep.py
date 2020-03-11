@@ -72,8 +72,9 @@ def engine_info(ctx, engine=None):
         click.echo(_('Engines available:') + ' ' + ', '.join(engines))
 
 @cli.command()
+@click.option('-e', '--engine', required=True)
 @click.pass_context
-def status(ctx):
+def status(ctx, engine):
     debug = ctx.obj['DEBUG']
     click.echo(_('STATUS'))
 
@@ -81,6 +82,21 @@ def status(ctx):
         click.echo(_('Debug is on'))
     else:
         click.echo(_('Debug is off'))
+
+    printer = ctx.obj['printer']
+    config = ctx.obj['config']
+    bucket = ctx.obj['bucket']
+
+    engine, config = get_engine(engine, config)
+
+    if ctx.obj['DEBUG']:
+        click.echo(_("Engine: %s" % engine))
+    engine = engines[engine](config=config)
+
+    loop = asyncio.get_event_loop()
+    result = loop.run_until_complete(engine.check_processor_statuses())
+    printer.print_status_output(result)
+
 
 @cli.command()
 @click.argument('filename', 'data file to process')

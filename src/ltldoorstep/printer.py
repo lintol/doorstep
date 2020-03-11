@@ -20,6 +20,9 @@ class Printer:
         self._debug = debug
         self._target = target
 
+    def print_status_output(self, status):
+        raise NotImplementedError("No report builder implemented for this printer")
+
     def get_debug(self):
         return self._debug
 
@@ -39,6 +42,24 @@ class Printer:
                 target_file.write(output)
 
 class TermColorPrinter(Printer):
+    def print_status_output(self, status):
+        fn_table = []
+
+        for fn, fst in status.items():
+            fn_table.append([
+                fst['name'],
+                fst['available'],
+                fst['total']
+            ])
+
+        output = tabulate.tabulate(fn_table)
+
+        if self._target is None:
+            print(output)
+        else:
+            with open(self._target, 'w') as target_file:
+                target_file.write(output)
+
     def get_output(self):
         return '\n\n'.join(self._output_sections)
 
@@ -95,6 +116,9 @@ class TermColorPrinter(Printer):
 
 
 class JsonPrinter(Printer):
+    def print_status_output(self, status):
+        return json.dumps(status)
+
     def get_output(self):
         return self._output
 
@@ -102,6 +126,15 @@ class JsonPrinter(Printer):
         self._output = json.dumps(result_sets)
 
 class HtmlPrinter(Printer):
+    def print_status_output(self, status):
+        output = status
+
+        if self._target is None:
+            print(output)
+        else:
+            with open(self._target, 'w') as target_file:
+                target_file.write(output)
+
     def get_output(self):
         templates = [
             os.path.join(

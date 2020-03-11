@@ -21,6 +21,9 @@ class Engine:
     def add_processor(self, modules, metadata, session):
         raise NotImplementedError("Function must be implemented")
 
+    async def check_processor_statuses(self):
+        raise NotImplementedError("Function must be implemented")
+
     async def run(self, filename, workflow_module, metadata, bucket=None):
         raise NotImplementedError("Function must be implemented")
 
