@@ -298,10 +298,15 @@ class Report(Serializable):
                 issues_by_table[self.table_string_from_issue(issue)][level].append(issue)
 
         tables = []
+        total_errors = 0
+        total_valid = True
         for table_string in table_strings:
             table = issues_by_table[table_string]
             report = {k: [item.render() for item in v] for k, v in table.items()}
+            error_count = sum([len(r) for r in report.values()])
+            total_errors += error_count
             valid = not bool(report[logging.ERROR])
+            total_valid = valid and total_valid
 
             tables.append(
                 {
@@ -317,14 +322,14 @@ class Report(Serializable):
                     'scheme': 'file',
                     'encoding': self.properties['encoding'],
                     'schema': None,
-                    'error-count': sum([len(r) for r in report.values()])
+                    'error-count': error_count
                 }
             )
 
         results = {
             'supplementary': supplementary,
-            'error-count': sum([len(r) for r in report.values()]),
-            'valid': valid,
+            'error-count': total_errors,
+            'valid': total_valid,
             'tables': tables,
             'filename': filename,
             'preset': self.get_preset(),
