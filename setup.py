@@ -20,7 +20,7 @@ except ImportError as e:
 
 name = 'ltldoorstep'
 version = '0.1'
-release = '0.1.1'
+release = '0.1.2'
 setup(
     name='ltldoorstep',
     version=release,
