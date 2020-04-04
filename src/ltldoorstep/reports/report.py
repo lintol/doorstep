@@ -205,6 +205,20 @@ class Report(Serializable):
             logging.ERROR: []
         }
         # table = {}
+        filename = dictionary['filename']
+
+        row_count = None
+        time = None
+        encoding = None
+        headers = None
+
+        metadata = None
+        if 'metadata' in dictionary:
+            if isinstance(dictionary['metadata'], DoorstepContext):
+                metadata = dictionary['metadata']
+            else:
+                metadata = DoorstepContext.from_dict(dictionary['metadata'])
+
         for table in dictionary['tables']:
             # print("*****type check**** %s" % type(dictionary))
 
@@ -226,14 +240,7 @@ class Report(Serializable):
                     table['informations']
             ]
 
-            filename = dictionary['filename']
-
-            if 'metadata' in dictionary:
-                if isinstance(dictionary['metadata'], DoorstepContext):
-                    metadata = dictionary['metadata']
-                else:
-                    metadata = DoorstepContext.from_dict(dictionary['metadata'])
-            else:
+            if metadata is None:
                 metadata = DoorstepContext(context_format=table['format'])
 
             row_count = table['row-count'] if 'time' in table else None
