@@ -62,8 +62,9 @@ class ProcessorResource():
 
     async def post(self, modules, ini, session):
         processors = {}
-        for module, content in modules.items():
-            processors[module] = content.encode('utf-8')
+        if len(modules):
+            for module, content in modules.items():
+                processors[module] = content.encode('utf-8')
 
         ini = DoorstepIni.from_dict(ini)
 

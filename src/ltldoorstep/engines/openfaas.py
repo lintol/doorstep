@@ -4,6 +4,7 @@ from contextlib import contextmanager
 import traceback
 import requests
 from requests.auth import HTTPBasicAuth
+import re
 import asyncio
 import time
 import os
@@ -20,6 +21,22 @@ from ..reports.report import Report, combine_reports
 
 OPENFAAS_HOST = 'http://127.0.0.1:8084'
 FUNCTION_CONTAINER_PREFIX = '/home/user/.local/lib/python3.6/site-packages/'
+
+def _check_allowed_functions(x, fn, allowed_functions):
+    for tag, function in allowed_functions.items():
+        if x == tag:
+            return x, function
+
+        print(tag, function, x, fn)
+
+        # We allow matching by a pattern, between two slashes - in which case the OpenFaaS function
+        # must also follow its own pattern, and match the metadata.docker['image'] (an abuse, as this
+        # must then actually be the OpenFaaS function name, not the docker image for the function)
+        if {tag[0], tag[-1]} == {'/'} and re.match(tag[1:-1], x) and fn:
+            if {function[0], function[-1]} == {'/'} and re.match(function[1:-1], fn):
+                return tag, fn
+    return None, None
+
 
 class OpenFaaSEngine(Engine):
     """Allow execution of workflows on a OpenFaaS cluster."""
@@ -176,10 +193,19 @@ class OpenFaaSEngine(Engine):
             for k, v in allowed_functions.items()
         }
 
+        def _check_functions(x):
+            if x in rev_functions:
+                return x
+            for fn in rev_functions:
+                if {fn[0], fn[-1]} == {'/'} and re.match(fn[1:-1], x):
+                    return fn
+            return None
+
+        matched = {cntt['name']: _check_functions(cntt['name']) for cntt in content}
         content = {
-            rev_functions[cntt['name']]: cntt
+            rev_functions[matched[cntt['name']]]: cntt
             for cntt in content
-            if cntt['name'] in rev_functions
+            if matched[cntt['name']]
         }
 
         return content
@@ -189,16 +215,15 @@ class OpenFaaSEngine(Engine):
         reports = []
         for processor in processors:
             metadata = processor['metadata']
-            if metadata.tag in allowed_functions:
-                tag = metadata.tag
-            elif processor['name'] in allowed_functions:
-                tag = processor['name']
-            else:
-                error_msg = _("Could not find {} or {} in allowed processors for OpenFaaS engine. Available:\n\t").format(metadata.tag, processor['name'])
-                error_msg += "\n\t-".join(allowed_functions.keys())
-                error_msg += _("\nOther functions are not available. Update .ltldoorstep.yml to add more")
+
+            tag, function = _check_allowed_functions(metadata.tag, metadata.docker['image'], allowed_functions)
+            if not tag:
+                tag, function = _check_allowed_functions(processor['name'], metadata.docker['image'], allowed_functions)
+
+            if not tag:
+                error_msg = _("Could not find {} or {} in allowed processors for OpenFaaS engine.").format(metadata.tag, processor['name'])
+                error_msg += _("\nUpdate .ltldoorstep.yml to add more")
                 raise RuntimeError(error_msg)
-            function = allowed_functions[tag]
 
             rq = None
             try:
