@@ -99,6 +99,7 @@ async def watch_gather(client, watch_changed_packages, time_delay, skip, cmpt_wr
 
     while True:
         async def iteration(cmpt):
+            recently_changed = []
             try:
                 recently_changed = client.recently_changed_packages_activity_list()
             except client.exception:
